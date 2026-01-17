@@ -6,14 +6,14 @@ Two related tools for DiSCO data simulation and visualization.
 
 ### disco_data_emulator (Server)
 Mock DiSCO server generating simulated entity data.
-- **Port:** 8080
+- **Port:** 8765
 - **Tech:** Express.js + TypeScript
 - **Start:** `cd disco_data_emulator && npm start`
 - **Docs:** See `disco_data_emulator/CLAUDE.md`
 
 ### disco_live_world_client_ui (Client)
 React UI visualizing entity data on maps and tables.
-- **Port:** 3000
+- **Port:** 3765
 - **Tech:** React 19 + Vite + TypeScript
 - **Start:** `cd disco_live_world_client_ui && npm run dev`
 - **Docs:** See `disco_live_world_client_ui/CLAUDE.md`
@@ -28,7 +28,7 @@ cd disco_data_emulator && npm start
 cd disco_live_world_client_ui && npm run dev
 ```
 
-Client connects to server at http://localhost:8080
+Client connects to server at http://localhost:8765
 
 ## Cross-Project Changes
 
