@@ -1,0 +1,6 @@
+[submodule "disco_data_emulator"]
+	path = disco_data_emulator
+	url = https://github.com/ericpauls/disco_data_emulator.git
+[submodule "disco_live_world_client_ui"]
+	path = disco_live_world_client_ui
+	url = https://github.com/ericpauls/disco_live_world_client_ui.git
