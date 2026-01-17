@@ -13,12 +13,20 @@ Mock DiSCO server generating simulated entity data.
 
 ### disco_live_world_client_ui (Client)
 React UI visualizing entity data on maps and tables.
-- **Port:** 3765
+- **Port:** 3000
 - **Tech:** React 19 + Vite + TypeScript
 - **Start:** `cd disco_live_world_client_ui && npm run dev`
 - **Docs:** See `disco_live_world_client_ui/CLAUDE.md`
 
 ## Running Both Together
+
+The easiest way is to use the unified start script from the workspace root:
+
+```bash
+./start.sh
+```
+
+Or run them separately in two terminals:
 
 ```bash
 # Terminal 1 - Start server
