@@ -40,6 +40,22 @@ When making changes affecting both projects (e.g., new API endpoint):
 4. **Test end-to-end** - Run both and verify integration
 5. **Commit both** - Coordinate commits in both repos
 
+## Git Operations (Submodules)
+
+This workspace uses git submodules. Each project has its own git repo.
+
+**IMPORTANT:** Always use full paths when running git commands:
+
+```bash
+# Correct - explicit directory
+cd /Users/ericpauls/Documents/DiSCO_combined_client_server/disco_data_emulator && git status
+
+# Wrong - assumes current directory
+git status
+```
+
+Each Bash command starts fresh - directory state doesn't persist between calls. Always combine `cd` with the git command in a single call.
+
 ## Shared Documentation
 
 See sibling files in this `.claude/` directory:
