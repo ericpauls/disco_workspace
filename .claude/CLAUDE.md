@@ -2,6 +2,41 @@
 
 Two related tools for DiSCO data simulation and visualization.
 
+## Active Development Branch
+
+**Current feature branch:** `add_endpoints_and_entities`
+
+This branch adds endpoint-based entity reporting with realistic measurement simulation. If you cloned without this branch, switch to it to get the latest work:
+
+```bash
+# Fresh clone with all submodules
+git clone --recurse-submodules https://github.com/ericpauls/disco_workspace.git
+cd disco_workspace
+
+# Checkout the feature branch
+git checkout add_endpoints_and_entities
+
+# Update submodules to match workspace branch
+git submodule update --init --recursive
+
+# Checkout matching branches in submodules
+cd disco_data_emulator && git checkout add_endpoint_entity_reporting
+cd ../disco_live_world_client_ui && git checkout add_endpoint_entity_reporting
+cd ..
+
+# Install dependencies
+cd disco_data_emulator && npm install
+cd ../disco_live_world_client_ui && npm install
+cd ..
+
+# Start both servers
+./start.sh
+```
+
+**Key documentation for this feature:**
+- `disco-data-architecture.md` - Complete data architecture and UUID system
+- `entity-reporting-implementation-plan.md` - Implementation plan and status
+
 ## Projects
 
 ### disco_data_emulator (Server)
@@ -67,6 +102,8 @@ Each Bash command starts fresh - directory state doesn't persist between calls. 
 ## Shared Documentation
 
 See sibling files in this `.claude/` directory:
+- `disco-data-architecture.md` - **Complete data architecture reference** (UUIDs, data flow, fusion pipeline)
+- `entity-reporting-implementation-plan.md` - **Entity reporting implementation plan and status**
 - `schemas.md` - Entity data models
 - `api-reference.md` - DiSCO API endpoints
 - `disco-overview.md` - Product context
