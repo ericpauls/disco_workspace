@@ -702,7 +702,6 @@ PUT    /apidocs/ttlLiveWorldModel                         - Update with TTL
 
 ## See Also
 
-- [schemas.md](schemas.md) - Detailed schema definitions
-- [api-reference.md](api-reference.md) - Full API reference (75 endpoints)
 - [disco-overview.md](disco-overview.md) - Product overview and context
 - [entity-reporting-implementation-plan.md](entity-reporting-implementation-plan.md) - Implementation plan for entity/position reporting
+- `disco_live_world_client_ui/javascript-client/` - Auto-generated API client with detailed schema definitions

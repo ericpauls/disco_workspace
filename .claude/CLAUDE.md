@@ -91,7 +91,7 @@ This workspace uses git submodules. Each project has its own git repo.
 
 ```bash
 # Correct - explicit directory
-cd /Users/ericpauls/Documents/DiSCO_combined_client_server/disco_data_emulator && git status
+cd /Users/ericpauls/Documents/disco_workspace/disco_data_emulator && git status
 
 # Wrong - assumes current directory
 git status
@@ -102,12 +102,15 @@ Each Bash command starts fresh - directory state doesn't persist between calls. 
 ## Shared Documentation
 
 See sibling files in this `.claude/` directory:
-- `disco-data-architecture.md` - **Complete data architecture reference** (UUIDs, data flow, fusion pipeline)
+- `disco-data-architecture.md` - **Complete data architecture reference** (UUIDs, data flow, fusion pipeline, API endpoints)
 - `entity-reporting-implementation-plan.md` - **Entity reporting implementation plan and status**
-- `schemas.md` - Entity data models
-- `api-reference.md` - DiSCO API endpoints
 - `disco-overview.md` - Product context
 - `known-issues.md` - Known bugs/limitations
 - `client-roadmap.md` - Development roadmap
-- `source-notes.md` - Raw notes and reference material
-- `claude_code_web_dev_workflow.md` - Development workflow guidelines
+- `claude_code_web_dev_workflow.md` - Chrome-based development workflow and visual verification
+
+**API & Schema Reference:**
+For detailed API endpoints and data schemas, see the auto-generated JavaScript client:
+- `disco_live_world_client_ui/javascript-client/docs/` - API documentation
+- `disco_live_world_client_ui/javascript-client/src/api/` - API client classes
+- `disco_live_world_client_ui/javascript-client/src/model/` - Data model classes

@@ -3,50 +3,25 @@
 ## Configuration & Setup Notes
 
 ### Browser Configuration - Switch to Google Chrome
-**Status**: Recommended Configuration Change
+**Status**: COMPLETED
 **Priority**: High
 **Created**: 2026-01-08
+**Completed**: 2026-01-18
 
 **Description**:
-The project currently uses Safari as the default browser for development, testing, and screenshots. Google Chrome should be the default browser instead for better developer experience and tooling support.
+Switched from Safari to Google Chrome for development, testing, and screenshots.
 
-**Rationale**:
-1. **DevTools**: Chrome DevTools has superior debugging, performance profiling, and memory inspection tools
-2. **Console Output**: Better console logging and error reporting
-3. **Performance Profiling**: More granular performance analysis for the 10k entity performance work
-4. **Memory Debugging**: Better memory leak detection and heap snapshots
-5. **Accessibility**: Chrome has better accessibility inspection tools
-6. **Consistency**: Industry standard for web development
+**What was done**:
+1. Updated `claude_code_web_dev_workflow.md` with Chrome-based workflow
+2. Chrome window size standardized to 900x600 (fits smaller monitors)
+3. Updated AppleScript commands for Chrome
+4. Added Chrome DevTools Protocol (CDP) instructions for programmatic control
 
-**Changes Needed**:
-1. Update `start.sh` script to launch Chrome instead of Safari
-2. Update `CLAUDE.md` screenshot instructions to use Chrome
-3. Update any browser-specific debugging instructions
-4. Verify application works identically in Chrome
-5. Update VSCode configuration for browser launching
-
-**Files to Update**:
-- `start.sh` - Change Safari launch command to Chrome
-- `CLAUDE.md` - Update screenshot generation instructions
-- `.claude/known-issues.md` - This document
-- Any other scripts using Safari (e.g., `osascript` commands)
-
-**Chrome Launch Commands**:
+**Chrome Launch Command**:
 ```bash
-# macOS
-open -a "Google Chrome" http://localhost:3000
-
-# Linux
-google-chrome http://localhost:3000
-
-# Windows
-start chrome http://localhost:3000
+# macOS with fixed window size
+open -a "Google Chrome" --args --window-size=900,600 http://localhost:3000
 ```
-
-**Related Files**:
-- `start.sh` (main startup script)
-- `CLAUDE.md` (project instructions)
-- `scripts/` (utility scripts)
 
 ---
 
