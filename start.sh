@@ -394,9 +394,10 @@ start_client() {
     print_success "Client started!"
 }
 
-# Open browser to client UI
+# Open browser to client UI and server dashboard
 open_browser() {
-    local url="http://127.0.0.1:${CLIENT_PORT}"
+    local client_url="http://127.0.0.1:${CLIENT_PORT}"
+    local dashboard_url="http://127.0.0.1:${SERVER_PORT}/dashboard"
 
     if [[ "$OPEN_BROWSER" != true ]]; then
         return 0
@@ -405,15 +406,25 @@ open_browser() {
     print_info "Opening Chrome browser..."
 
     # macOS: use open with Chrome
+    # Open dashboard first (becomes background when client opens)
+    # Then open client (becomes active/foreground tab)
     if [[ "$(uname)" == "Darwin" ]]; then
-        open -a "Google Chrome" "$url" 2>/dev/null || open "$url" 2>/dev/null || true
+        open -a "Google Chrome" "$dashboard_url" 2>/dev/null || true
+        sleep 0.3
+        open -a "Google Chrome" "$client_url" 2>/dev/null || open "$client_url" 2>/dev/null || true
     # Linux: try chrome, then chromium, then xdg-open
     elif command -v google-chrome &>/dev/null; then
-        google-chrome "$url" &>/dev/null &
+        google-chrome "$dashboard_url" &>/dev/null &
+        sleep 0.3
+        google-chrome "$client_url" &>/dev/null &
     elif command -v chromium &>/dev/null; then
-        chromium "$url" &>/dev/null &
+        chromium "$dashboard_url" &>/dev/null &
+        sleep 0.3
+        chromium "$client_url" &>/dev/null &
     elif command -v xdg-open &>/dev/null; then
-        xdg-open "$url" &>/dev/null &
+        xdg-open "$dashboard_url" &>/dev/null &
+        sleep 0.3
+        xdg-open "$client_url" &>/dev/null &
     fi
 }
 
@@ -421,8 +432,9 @@ open_browser() {
 show_status() {
     print_header "DiSCO Workspace Running"
 
-    echo -e "  ${GREEN}Server:${NC}  http://127.0.0.1:${SERVER_PORT}/apidocs"
-    echo -e "  ${GREEN}Client:${NC}  http://127.0.0.1:${CLIENT_PORT}"
+    echo -e "  ${GREEN}Server:${NC}     http://127.0.0.1:${SERVER_PORT}/apidocs"
+    echo -e "  ${GREEN}Dashboard:${NC}  http://127.0.0.1:${SERVER_PORT}/dashboard"
+    echo -e "  ${GREEN}Client:${NC}     http://127.0.0.1:${CLIENT_PORT}"
     echo ""
     echo -e "  ${CYAN}API Health:${NC}  http://127.0.0.1:${SERVER_PORT}/apidocs/health"
     echo ""

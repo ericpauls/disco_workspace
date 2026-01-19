@@ -1,6 +1,24 @@
 # Claude Code Web Development Workflow
 
+**⚠️ MANDATORY: This workflow MUST be followed for ALL UI/web changes. No exceptions.**
+
 This document describes a self-testing workflow for Claude Code agents working on web/UI projects. The key principle: **never claim something works without verifying it yourself**.
+
+## CRITICAL: When to Run This Workflow
+
+**You MUST run the verification workflow BEFORE claiming any feature is complete when:**
+- Making ANY changes to UI components
+- Adding or modifying API endpoints
+- Changing styling (CSS)
+- Modifying data flow between server and client
+- Adding new features to dashboard or client UI
+
+**TypeScript compilation passing is NOT sufficient.** Code that compiles can still:
+- Render incorrectly
+- Have broken interactions
+- Show wrong data
+- Have CSS issues
+- Fail at runtime
 
 ## Core Philosophy
 
@@ -9,6 +27,7 @@ This document describes a self-testing workflow for Claude Code agents working o
 3. **Trust but verify** - Don't assume code changes work; prove they work
 4. **Fix before presenting** - If something fails, fix it before telling the user
 5. **Real UI, not headless** - Always test with a visible browser window
+6. **No feature is done until visually verified** - Screenshots prove completion
 
 ## Environment Setup
 
@@ -29,13 +48,71 @@ This ensures:
 
 ## Browser Control
 
-### Opening URLs
+### Tab Management (IMPORTANT)
+
+**ALWAYS check for existing tabs before opening new ones.** Opening duplicate tabs clutters the browser and wastes resources.
 
 ```bash
-# Open URL in Chrome with fixed window size (900x600)
+# Check if a tab with specific URL already exists and switch to it
+# Returns the tab index (1-based) or 0 if not found
+osascript -e '
+tell application "Google Chrome"
+    set targetURL to "localhost:3000"
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains targetURL then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                activate
+                return tabIndex
+            end if
+        end repeat
+    end repeat
+    return 0
+end tell'
+
+# Helper function: Switch to existing tab OR open new one if not found
+switch_or_open_tab() {
+    local url="$1"
+    local found=$(osascript -e "
+tell application \"Google Chrome\"
+    set targetURL to \"$url\"
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains targetURL then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                activate
+                return true
+            end if
+        end repeat
+    end repeat
+    return false
+end tell")
+
+    if [ "$found" = "false" ]; then
+        osascript -e "tell application \"Google Chrome\" to open location \"http://$url\""
+    fi
+    osascript -e 'tell application "Google Chrome" to activate'
+}
+
+# Usage:
+# switch_or_open_tab "localhost:3000"
+# switch_or_open_tab "localhost:8765/dashboard"
+```
+
+### Opening URLs (Only When Tab Doesn't Exist)
+
+```bash
+# Open URL in Chrome with fixed window size (900x600) - ONLY for initial launch
 open -a "Google Chrome" --args --window-size=900,600 http://localhost:3000
 
 # If Chrome is already running, use AppleScript to open new tab
+# NOTE: Prefer checking for existing tabs first (see Tab Management above)
 osascript -e 'tell application "Google Chrome" to open location "http://localhost:3000"'
 
 # Open and bring Chrome to front
@@ -261,20 +338,89 @@ end tell'
 
 ### Required Validation Steps
 
-**Every change MUST be validated before completion. No exceptions.**
+**⚠️ MANDATORY: Every UI/web change MUST be validated before completion. No exceptions.**
+
+**This is the MINIMUM required verification for ANY UI change:**
 
 1. **Run `./start.sh`** to start both server and client
-2. **Verify server data**: `curl http://localhost:8765/api/liveWorldModel/getLatest | jq .`
-3. **Take a screenshot** of the running app at http://localhost:3000
-4. **Visually inspect** the screenshot - confirm UI renders correctly
-5. **Verify entities** appear on map and in table with correct data
-6. **Check console** for any errors or warnings
-7. **Fix issues** before reporting completion to user
+2. **Wait for startup** - Give server and client time to initialize (~5 seconds)
+3. **Verify server is running**: `curl -s http://localhost:8765/health | jq .`
+4. **Take screenshots** of BOTH:
+   - Client UI at http://localhost:3000
+   - Server dashboard at http://localhost:8765/dashboard
+5. **Read and inspect screenshots** using the Read tool - actually look at them
+6. **Verify the specific feature you changed** - don't just check "it loads"
+7. **If anything is wrong, fix it** before reporting to user
+
+### Complete Verification Script
+
+Run this BEFORE claiming any feature is complete:
+
+```bash
+# 1. Start the servers (if not already running)
+./start.sh &
+sleep 5
+
+# 2. Verify server health
+curl -s http://localhost:8765/health | jq .
+
+# 3. Create screenshots directory
+mkdir -p ./screenshots
+
+# 4. Switch to existing client tab OR open if not found, then capture
+osascript -e '
+tell application "Google Chrome"
+    set found to false
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains "localhost:3000" then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                set found to true
+                exit repeat
+            end if
+        end repeat
+        if found then exit repeat
+    end repeat
+    if not found then open location "http://localhost:3000"
+    activate
+end tell'
+sleep 2
+screencapture -x ./screenshots/client_ui.png
+
+# 5. Switch to existing dashboard tab OR open if not found, then capture
+osascript -e '
+tell application "Google Chrome"
+    set found to false
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains "localhost:8765/dashboard" then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                set found to true
+                exit repeat
+            end if
+        end repeat
+        if found then exit repeat
+    end repeat
+    if not found then open location "http://localhost:8765/dashboard"
+    activate
+end tell'
+sleep 2
+screencapture -x ./screenshots/server_dashboard.png
+
+# 6. Use Read tool to inspect both screenshots
+```
 
 ### What "Done" Means
 
 - App is running and verified working
-- Screenshot taken and inspected
+- **Screenshots taken and INSPECTED** (not just captured)
+- **Specific feature verified visually** (not just "it loads")
 - Data confirmed correct via API inspection
 - No console errors
 - User can immediately use the feature
@@ -284,7 +430,9 @@ end tell'
 - "This should work"
 - "Try running it"
 - "The code looks correct"
+- "TypeScript compiles"
 - Untested assumptions
+- Screenshots captured but not read/inspected
 
 ---
 

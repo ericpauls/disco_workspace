@@ -2,6 +2,19 @@
 
 Two related tools for DiSCO data simulation and visualization.
 
+## ⚠️ MANDATORY: Visual Testing Workflow
+
+**BEFORE claiming ANY UI/web feature is complete, you MUST follow the workflow in `claude_code_web_dev_workflow.md`.**
+
+This means:
+1. Run `./start.sh` to start both server and client
+2. Take screenshots of client UI AND server dashboard
+3. **Actually read and inspect the screenshots** using the Read tool
+4. Verify the specific feature you changed works correctly
+5. Fix any issues before reporting completion
+
+**TypeScript compilation is NOT sufficient verification.** Visual testing is MANDATORY.
+
 ## Active Development Branch
 
 **Current feature branch:** `add_endpoints_and_entities`
@@ -102,12 +115,12 @@ Each Bash command starts fresh - directory state doesn't persist between calls. 
 ## Shared Documentation
 
 See sibling files in this `.claude/` directory:
-- `disco-data-architecture.md` - **Complete data architecture reference** (UUIDs, data flow, fusion pipeline, API endpoints)
-- `entity-reporting-implementation-plan.md` - **Entity reporting implementation plan and status**
+- **`claude_code_web_dev_workflow.md`** - **⚠️ MANDATORY: Read and follow this for ALL UI changes**
+- `disco-data-architecture.md` - Complete data architecture reference (UUIDs, data flow, fusion pipeline, API endpoints)
+- `entity-reporting-implementation-plan.md` - Entity reporting implementation plan and status
 - `disco-overview.md` - Product context
 - `known-issues.md` - Known bugs/limitations
 - `client-roadmap.md` - Development roadmap
-- `claude_code_web_dev_workflow.md` - Chrome-based development workflow and visual verification
 
 **API & Schema Reference:**
 For detailed API endpoints and data schemas, see the auto-generated JavaScript client:
