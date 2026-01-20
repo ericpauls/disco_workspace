@@ -201,28 +201,32 @@ set "SERVER_NEEDS_INSTALL=false"
 set "CLIENT_NEEDS_INSTALL=false"
 
 REM Check server dependencies
-if exist "%SERVER_DIR%\node_modules" (
-    echo [OK] Server dependencies found
-) else (
-    echo [WARN] Server dependencies missing (node_modules not found)
-    set "SERVER_NEEDS_INSTALL=true"
-)
+if exist "%SERVER_DIR%\node_modules" goto :server_deps_ok
+echo [WARN] Server dependencies missing (node_modules not found)
+set "SERVER_NEEDS_INSTALL=true"
+goto :check_client_deps
 
+:server_deps_ok
+echo [OK] Server dependencies found
+
+:check_client_deps
 REM Check client dependencies
-if exist "%CLIENT_DIR%\node_modules" (
-    echo [OK] Client dependencies found
-) else (
-    echo [WARN] Client dependencies missing (node_modules not found)
-    set "CLIENT_NEEDS_INSTALL=true"
-)
+if exist "%CLIENT_DIR%\node_modules" goto :client_deps_ok
+echo [WARN] Client dependencies missing (node_modules not found)
+set "CLIENT_NEEDS_INSTALL=true"
+goto :check_force_install
 
+:client_deps_ok
+echo [OK] Client dependencies found
+
+:check_force_install
 REM Handle force install
-if "%FORCE_INSTALL%"=="true" (
-    set "SERVER_NEEDS_INSTALL=true"
-    set "CLIENT_NEEDS_INSTALL=true"
-    echo [INFO] Force install requested
-)
+if not "%FORCE_INSTALL%"=="true" goto :check_if_install_needed
+set "SERVER_NEEDS_INSTALL=true"
+set "CLIENT_NEEDS_INSTALL=true"
+echo [INFO] Force install requested
 
+:check_if_install_needed
 REM Install if needed
 if "%SERVER_NEEDS_INSTALL%"=="true" goto :needs_install
 if "%CLIENT_NEEDS_INSTALL%"=="true" goto :needs_install
@@ -231,12 +235,15 @@ goto :dependencies_ok
 :needs_install
 echo.
 
-if "%SKIP_INSTALL%"=="true" (
-    echo [ERROR] Dependencies missing and --skip-install was specified
-    echo [INFO] Run 'npm install' in both projects first, or omit --skip-install
-    exit /b 1
-)
+if "%SKIP_INSTALL%"=="true" goto :skip_install_error
+goto :prompt_install
 
+:skip_install_error
+echo [ERROR] Dependencies missing and --skip-install was specified
+echo [INFO] Run 'npm install' in both projects first, or omit --skip-install
+exit /b 1
+
+:prompt_install
 REM Prompt user unless force install
 if "%FORCE_INSTALL%"=="true" goto :do_install
 
@@ -257,32 +264,35 @@ exit /b 1
 :do_install
 
 REM Install server dependencies
-if "%SERVER_NEEDS_INSTALL%"=="true" (
-    echo [INFO] Installing dependencies for Server (disco_data_emulator)...
-    pushd "%SERVER_DIR%"
-    call npm install
-    if errorlevel 1 (
-        popd
-        echo [ERROR] Failed to install Server dependencies
-        exit /b 1
-    )
-    popd
-    echo [OK] Server dependencies installed
-)
+if not "%SERVER_NEEDS_INSTALL%"=="true" goto :install_client
+echo [INFO] Installing dependencies for Server (disco_data_emulator)...
+pushd "%SERVER_DIR%"
+call npm install
+if errorlevel 1 goto :server_install_failed
+popd
+echo [OK] Server dependencies installed
+goto :install_client
 
+:server_install_failed
+popd
+echo [ERROR] Failed to install Server dependencies
+exit /b 1
+
+:install_client
 REM Install client dependencies
-if "%CLIENT_NEEDS_INSTALL%"=="true" (
-    echo [INFO] Installing dependencies for Client (disco_live_world_client_ui)...
-    pushd "%CLIENT_DIR%"
-    call npm install
-    if errorlevel 1 (
-        popd
-        echo [ERROR] Failed to install Client dependencies
-        exit /b 1
-    )
-    popd
-    echo [OK] Client dependencies installed
-)
+if not "%CLIENT_NEEDS_INSTALL%"=="true" goto :dependencies_ok
+echo [INFO] Installing dependencies for Client (disco_live_world_client_ui)...
+pushd "%CLIENT_DIR%"
+call npm install
+if errorlevel 1 goto :client_install_failed
+popd
+echo [OK] Client dependencies installed
+goto :dependencies_ok
+
+:client_install_failed
+popd
+echo [ERROR] Failed to install Client dependencies
+exit /b 1
 
 :dependencies_ok
 exit /b 0
@@ -300,30 +310,33 @@ set "ANY_IN_USE=false"
 
 REM Check server port
 call :check_port %SERVER_PORT%
-if "%PORT_IN_USE%"=="true" (
-    set "ANY_IN_USE=true"
-    echo [WARN] Port %SERVER_PORT% is in use
-) else (
-    echo [OK] Port %SERVER_PORT% is available
-)
+if not "%PORT_IN_USE%"=="true" goto :server_port_ok
+set "ANY_IN_USE=true"
+echo [WARN] Port %SERVER_PORT% is in use
+goto :check_client_port
 
+:server_port_ok
+echo [OK] Port %SERVER_PORT% is available
+
+:check_client_port
 REM Check client port
 call :check_port %CLIENT_PORT%
-if "%PORT_IN_USE%"=="true" (
-    set "ANY_IN_USE=true"
-    echo [WARN] Port %CLIENT_PORT% is in use
-) else (
-    echo [OK] Port %CLIENT_PORT% is available
-)
+if not "%PORT_IN_USE%"=="true" goto :client_port_ok
+set "ANY_IN_USE=true"
+echo [WARN] Port %CLIENT_PORT% is in use
+goto :ports_checked
 
-if "%ANY_IN_USE%"=="true" (
-    echo.
-    echo [INFO] Stopping existing processes for clean start...
+:client_port_ok
+echo [OK] Port %CLIENT_PORT% is available
 
-    call :kill_port %SERVER_PORT%
-    call :kill_port %CLIENT_PORT%
-)
+:ports_checked
+if not "%ANY_IN_USE%"=="true" goto :ports_done
+echo.
+echo [INFO] Stopping existing processes for clean start...
+call :kill_port %SERVER_PORT%
+call :kill_port %CLIENT_PORT%
 
+:ports_done
 exit /b 0
 
 :check_port
