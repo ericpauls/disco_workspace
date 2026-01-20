@@ -238,17 +238,23 @@ if "%SKIP_INSTALL%"=="true" (
 )
 
 REM Prompt user unless force install
-if not "%FORCE_INSTALL%"=="true" (
-    echo Some dependencies need to be installed.
-    set /p "REPLY=Install now? (Y/n): "
-    if /i not "!REPLY!"=="Y" if not "!REPLY!"=="" (
-        echo [ERROR] Cannot proceed without dependencies
-        echo [INFO] Run the following commands manually:
-        if "%SERVER_NEEDS_INSTALL%"=="true" echo   cd %SERVER_DIR% ^&^& npm install
-        if "%CLIENT_NEEDS_INSTALL%"=="true" echo   cd %CLIENT_DIR% ^&^& npm install
-        exit /b 1
-    )
-)
+if "%FORCE_INSTALL%"=="true" goto :do_install
+
+echo Some dependencies need to be installed.
+set /p "REPLY=Install now? (Y/n): "
+
+REM Default to Y if empty, check for N to decline
+if /i "%REPLY%"=="n" goto :install_declined
+goto :do_install
+
+:install_declined
+echo [ERROR] Cannot proceed without dependencies
+echo [INFO] Run the following commands manually:
+if "%SERVER_NEEDS_INSTALL%"=="true" echo   cd %SERVER_DIR% ^&^& npm install
+if "%CLIENT_NEEDS_INSTALL%"=="true" echo   cd %CLIENT_DIR% ^&^& npm install
+exit /b 1
+
+:do_install
 
 REM Install server dependencies
 if "%SERVER_NEEDS_INSTALL%"=="true" (
