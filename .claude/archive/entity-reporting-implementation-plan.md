@@ -4,6 +4,16 @@
 
 **Prerequisites**: Read [disco-data-architecture.md](disco-data-architecture.md) first to understand the data model.
 
+> **⚠️ IMPLEMENTATION STATUS (as of 2026-01-20):**
+> - **Phase 1 (Architecture Documentation)**: ✓ COMPLETE
+> - **Phase 2-3 (Endpoints & Measurement Model)**: ✓ LARGELY COMPLETE - Entity Reports storage, Position Reports storage, endpoint simulation with realistic measurement noise
+> - **Phase 4 (Server APIs)**: ✓ IMPLEMENTED - APIs for entity reports and position reports exist
+> - **Phase 5 (Developer Dashboard)**: NOT IMPLEMENTED
+> - **Phase 6 (Client UI Updates)**: ✓ IMPLEMENTED - Client has entity reports and position reports tables/views
+> - **Phase 7 (Test Scenarios)**: ✓ IMPLEMENTED - Multiple scenarios including EndpointTestScenario
+>
+> **Key Gap**: The fusion pipeline (correlation, summarization) is documented but not yet implemented. Entity reports are collected and stored, but not correlated or fused into the Live World Model.
+
 ---
 
 ## Table of Contents

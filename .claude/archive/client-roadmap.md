@@ -14,7 +14,7 @@
 
 ### Required Steps After Any Code Change:
 1. **Run `./start.sh`** to start both server and client
-2. **Verify server data**: `curl http://localhost:8080/api/entities | jq .`
+2. **Verify server data**: `curl http://localhost:8765/apidocs/liveWorldModel/getLatest | jq .`
 3. **Take a screenshot** of the running app at http://localhost:3000
 4. **Visually inspect** the screenshot - confirm UI renders correctly
 5. **Verify entities** appear on map and in table with correct data

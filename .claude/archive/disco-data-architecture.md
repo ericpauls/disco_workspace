@@ -33,8 +33,10 @@ DiSCO (Distributed Spectrum Collaboration & Operations) collects electromagnetic
 
 **Two Paths to Live World:**
 
-1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters)
-2. **Direct Path**: Position Reports → Live World (for DiSCO endpoint self-locations)
+1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters) **[PLANNED - NOT YET IMPLEMENTED]**
+2. **Direct Path**: Position Reports → Live World (for DiSCO endpoint self-locations) **✓ IMPLEMENTED**
+
+> **⚠️ IMPLEMENTATION STATUS**: The current emulator implements entity/position report storage and the Direct Path. The Fused Path (correlation, summarization, fusion tables) is documented but not yet implemented.
 
 ---
 
@@ -100,8 +102,11 @@ All three get: group_uuid = "group-555"
 | `amplitude_avg` | number | Average signal amplitude (dBm) |
 | `elnot` | string | ELNOT identifier |
 | `emitter_type` | string | RADAR, COMMUNICATIONS, JAMMER, MISSILE, etc. |
-| `modulation_type` | string | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
+| `modulation` | string | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
 | `latest_timestamp` | integer | Unix timestamp (ms) |
+| `created_timestamp` | integer | Server creation time (ms) |
+| `observation_distance_km` | number \| null | Optional: Distance from observer to entity |
+| `observation_bearing_deg` | number \| null | Optional: Bearing from observer to entity |
 
 **Important**: All signal parameters are **MEASURED values** as perceived by the endpoint, including measurement noise/error.
 
@@ -117,10 +122,13 @@ All three get: group_uuid = "group-555"
 | `position` | Position | Endpoint's current location (lat/lon/alt) |
 | `dof` | DOF | Degrees of freedom (pitch/roll/yaw) |
 | `magnetic_heading` | number | Current heading |
+| `heading` | number | Current heading (degrees) |
+| `speed` | number | Current speed |
 | `altitude_reference` | string | Altitude reference system |
 | `latest_timestamp` | integer | Unix timestamp (ms) |
+| `created_timestamp` | integer | Server creation time (ms) |
 
-### 3.3 fusedEntityMapping
+### 3.3 fusedEntityMapping **[PLANNED - NOT YET IMPLEMENTED]**
 
 **Purpose**: Links entity reports to correlation groups. Created by the correlation service.
 
@@ -137,7 +145,7 @@ The correlation service determines which entity reports "belong together" (repre
 - Observations from multiple different endpoints seeing the same entity
 - Forming new groups when no existing group matches a new observation
 
-### 3.4 fusedEntitySummary
+### 3.4 fusedEntitySummary **[PLANNED - NOT YET IMPLEMENTED]**
 
 **Purpose**: State estimates per correlation group. New row created on each state change.
 
@@ -623,40 +631,50 @@ The `group_uuid` enables critical data provenance:
 
 ## 10. API Endpoints Reference
 
-### 10.1 entities API (12 endpoints)
+### 10.1 entities API (7 implemented, 5 planned)
 
+**✓ Implemented:**
 ```
 POST   /apidocs/entities                                  - Add new Entity Report
-PUT    /apidocs/entities                                  - Update Entity Report
-POST   /apidocs/entities/batchInsert                      - Batch add Entity Reports
-POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
+POST   /apidocs/entities/batch                            - Batch add Entity Reports
 GET    /apidocs/entities/getByParams                      - Query by parameters
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
-GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
-GET    /apidocs/entities/getLatestPosition/{source_entity_uuid} - Latest position
-GET    /apidocs/entities/getPositions                     - Query positions
 GET    /apidocs/entities/getUuids                         - List UUIDs
 GET    /apidocs/entities/{entity_msg_uuid}                - Get by UUID
 DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
 ```
 
-### 10.2 positionReports API (11 endpoints)
+**[PLANNED]:**
+```
+PUT    /apidocs/entities                                  - Update Entity Report
+POST   /apidocs/entities/batchInsert                      - Alternative batch endpoint
+POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
+GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
+GET    /apidocs/entities/getPositions                     - Query positions
+```
 
+### 10.2 positionReports API (7 implemented, 4 planned)
+
+**✓ Implemented:**
 ```
 POST   /apidocs/positionReports                           - Add new Position Report
-PUT    /apidocs/positionReports                           - Update Position Report
-POST   /apidocs/positionReports/batchInsert               - Batch add Position Reports
-POST   /apidocs/positionReports/getBatchBySource          - Get batch by source UUIDs
 GET    /apidocs/positionReports/getByParams               - Query by parameters
 GET    /apidocs/positionReports/getLatest                 - Get latest
-GET    /apidocs/positionReports/getLatestPosition/{uuid}  - Latest position
-GET    /apidocs/positionReports/getPositions              - Query positions
+GET    /apidocs/positionReports/getLatestPerEndpoint      - Get latest per endpoint
 GET    /apidocs/positionReports/getUuids                  - List UUIDs
 GET    /apidocs/positionReports/{uuid}                    - Get by UUID
 DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
 ```
 
-### 10.3 fusedEntityMapping API (9 endpoints)
+**[PLANNED]:**
+```
+PUT    /apidocs/positionReports                           - Update Position Report
+POST   /apidocs/positionReports/batchInsert               - Batch add Position Reports
+POST   /apidocs/positionReports/getBatchBySource          - Get batch by source UUIDs
+GET    /apidocs/positionReports/getPositions              - Query positions
+```
+
+### 10.3 fusedEntityMapping API **[PLANNED - NOT YET IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntityMapping                        - Add new mapping
@@ -670,7 +688,7 @@ GET    /apidocs/fusedEntityMapping/{uuid}                 - Get by UUID
 DELETE /apidocs/fusedEntityMapping/{uuid}                 - Delete by UUID
 ```
 
-### 10.4 fusedEntitySummary API (9 endpoints)
+### 10.4 fusedEntitySummary API **[PLANNED - NOT YET IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntitySummary                        - Add new summary
@@ -689,13 +707,33 @@ DELETE /apidocs/fusedEntitySummary/{uuid}                 - Delete by UUID
 ```
 POST   /apidocs/liveWorldModel                            - Add new record
 PUT    /apidocs/liveWorldModel                            - Update record
+GET    /apidocs/liveWorldModel/getDelta                   - Get changes since timestamp
 GET    /apidocs/liveWorldModel/getByParams                - Query by parameters
 GET    /apidocs/liveWorldModel/getLatest                  - Get latest (current impl)
 GET    /apidocs/liveWorldModel/getUuids                   - List UUIDs by origin
 GET    /apidocs/liveWorldModel/{uuid}                     - Get by origin UUID
 DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
-POST   /apidocs/ttlLiveWorldModel                         - Add with TTL
-PUT    /apidocs/ttlLiveWorldModel                         - Update with TTL
+```
+
+### 10.6 Simulation Control & Monitoring (Implemented)
+
+```
+GET    /apidocs/health                                    - Health check
+GET    /apidocs/simulation/status                         - Get simulation status
+POST   /apidocs/simulation/pause                          - Pause simulation
+POST   /apidocs/simulation/resume                         - Resume simulation
+POST   /apidocs/simulation/clearReports                   - Clear all entity/position reports
+GET    /apidocs/metrics                                   - Get performance metrics
+```
+
+### 10.7 Endpoint Management (Implemented)
+
+```
+GET    /apidocs/endpoints                                 - Get all endpoints
+POST   /apidocs/endpoints/pause                           - Pause specific endpoint
+POST   /apidocs/endpoints/resume                          - Resume specific endpoint
+POST   /apidocs/endpoints/pauseAll                        - Pause all endpoints
+POST   /apidocs/endpoints/resumeAll                       - Resume all endpoints
 ```
 
 ---
