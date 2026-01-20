@@ -14,7 +14,7 @@
 # OPTIONS:
 #   --server-port PORT    Server port (default: 8765)
 #   --client-port PORT    Client port (default: 3000)
-#   --scenario NAME       Server scenario (default: endpoint-test)
+#   --scenario NAME       Server scenario (default: density-gradient)
 #   --skip-install        Skip npm install prompts
 #   --force-install       Force npm install for both projects
 #   --no-browser          Don't open browser automatically
@@ -30,7 +30,7 @@ set -euo pipefail
 
 SERVER_PORT=8765
 CLIENT_PORT=3000
-SCENARIO="endpoint-test"
+SCENARIO="density-gradient"
 SKIP_INSTALL=false
 FORCE_INSTALL=false
 OPEN_BROWSER=true
@@ -454,14 +454,15 @@ show_help() {
     echo "Options:"
     echo "  --server-port PORT    Server port (default: 8765)"
     echo "  --client-port PORT    Client port (default: 3000)"
-    echo "  --scenario NAME       Server scenario (default: endpoint-test)"
+    echo "  --scenario NAME       Server scenario (default: density-gradient)"
     echo "  --skip-install        Skip npm install prompts (fail if deps missing)"
     echo "  --force-install       Force npm install for both projects"
     echo "  --no-browser          Don't open browser automatically"
     echo "  --help, -h            Show this help message"
     echo ""
     echo "Available Scenarios:"
-    echo "  endpoint-test         3 DiSCO endpoints + 100 entities (default)"
+    echo "  density-gradient      10 endpoints through dense cluster @ 36x speed (default)"
+    echo "  endpoint-test         3 DiSCO endpoints + 100 entities"
     echo "  stress-tiny           100 entities"
     echo "  stress-tiny-fast      100 entities @ 1000x speed"
     echo "  stress-small          1,000 entities"
