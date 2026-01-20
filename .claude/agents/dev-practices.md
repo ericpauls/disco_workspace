@@ -2,7 +2,7 @@
 name: dev-practices
 description: DiSCO development practices expert. Use proactively for visual testing workflows, screenshot verification, git submodule operations, cross-project changes, implementation planning, or development best practices.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 # DiSCO Development Practices Agent

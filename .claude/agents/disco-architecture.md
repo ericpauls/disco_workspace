@@ -2,7 +2,7 @@
 name: disco-architecture
 description: DiSCO data architecture specialist. Use proactively when questions involve data models, UUID systems (source vs server UUIDs), entity/position reporting, fusion pipelines, correlation/summarization services, API endpoints, or database table schemas.
 tools: Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # DiSCO Architecture Agent

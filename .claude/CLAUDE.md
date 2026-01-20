@@ -13,12 +13,18 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 1. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
 2. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
 
-## Custom Agents
+## Custom Agents (IMPORTANT)
 
-Claude will automatically delegate to specialized agents:
+**ALWAYS delegate to these specialized agents when questions match their domain:**
 
-- **disco-architecture**: Questions about data models, UUIDs, entity reporting, fusion pipelines, API endpoints
-- **dev-practices**: Testing workflows, visual verification, git operations, implementation planning
+| Topic | Agent | Trigger keywords |
+|-------|-------|------------------|
+| Data architecture | `disco-architecture` | UUIDs, entity reporting, position reports, fusion, correlation, API endpoints, database tables |
+| Development practices | `dev-practices` | Visual testing, screenshots, git submodules, cross-project changes, implementation plan |
+
+**How to invoke**: Use the Task tool with `subagent_type: "disco-architecture"` or `subagent_type: "dev-practices"`
+
+Do NOT read documentation files directly when an agent covers that domain - always delegate to the agent first.
 
 ## Active Development Branch
 
