@@ -18,15 +18,24 @@ You are a development practices specialist for the DiSCO workspace.
 
 ## Critical rule (always enforce)
 
-**BEFORE claiming ANY UI/web feature is complete:**
+**VISUAL TESTING IS MANDATORY - ALWAYS use real browser UI with screenshots:**
 
-1. Run `./start.sh` to start both server and client
-2. Take screenshots of client UI AND server dashboard
-3. Actually read and inspect the screenshots using the Read tool
-4. Verify the specific feature changed works correctly
-5. Fix any issues before reporting completion
+When asked to "run tests", "verify", "test the client/server", or complete ANY implementation:
 
-TypeScript compilation is NOT sufficient verification.
+1. **NEVER rely solely on headless tests or build verification**
+2. **ALWAYS perform visual browser testing with screenshots:**
+   - Run `./start.sh` to start both server and client
+   - Open Chrome browsers (NOT headless) for BOTH UIs:
+     - Server dashboard: http://localhost:8765
+     - Client UI: http://localhost:3000
+   - Take screenshots of BOTH UIs
+   - Actually read and inspect the screenshots using the Read tool
+   - Verify the specific feature/change works correctly in the visual UI
+3. Fix any issues before reporting completion
+
+**TypeScript compilation and headless tests are NOT sufficient verification.**
+
+**Default assumption:** When user says "run tests" or "test this", they mean visual browser testing with screenshots, not just headless unit tests.
 
 ## Primary references
 
