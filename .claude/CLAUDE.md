@@ -10,8 +10,9 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 
 ## Critical Rules
 
-1. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
-2. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
+1. **NEVER commit or push without explicit user permission** - Always wait for "commit" or "push" command
+2. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
+3. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
 
 ## Custom Agents (IMPORTANT)
 
@@ -19,7 +20,7 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 
 | Topic | Agent | Trigger keywords |
 |-------|-------|------------------|
-| Data architecture | `disco-architecture` | UUIDs, entity reporting, position reports, fusion, correlation, API endpoints, database tables |
+| Data architecture | `disco-architecture` | UUIDs, entity reporting, position reports, fusion, correlation, API endpoints, database tables, **fields, schema, "all fields", "every field", data model** |
 | Development practices | `dev-practices` | **Testing, verification, "run test(s)"**, visual testing, screenshots, git submodules, cross-project changes, implementation plan |
 
 **How to invoke**: Use the Task tool with `subagent_type: "disco-architecture"` or `subagent_type: "dev-practices"`
@@ -69,7 +70,7 @@ When making changes affecting both projects:
 2. Update server (disco_data_emulator)
 3. Update client (disco_live_world_client_ui)
 4. Test end-to-end
-5. Commit both repos
+5. **Wait for user to say "commit" or "push"** - never commit/push automatically
 
 ## After Completing Features/Fixes
 
@@ -99,9 +100,13 @@ Detailed docs in `.claude/archive/`:
 - `disco_data_emulator/CLAUDE.md` - Server-specific guidance
 - `disco_live_world_client_ui/CLAUDE.md` - Client-specific guidance
 
-## API & Schema Reference
+## API & Schema Reference (AUTHORITATIVE)
 
-For detailed API endpoints and data schemas, see the auto-generated JavaScript client:
-- `disco_live_world_client_ui/javascript-client/docs/` - API documentation
-- `disco_live_world_client_ui/javascript-client/src/api/` - API client classes
-- `disco_live_world_client_ui/javascript-client/src/model/` - Data model classes
+**The JavaScript client is the canonical source of truth for API schemas and table fields.**
+
+When asked about data models, table schemas, or "all fields" questions:
+1. Check `disco_live_world_client_ui/javascript-client/docs/` FIRST (API documentation)
+2. Check `disco_live_world_client_ui/javascript-client/src/model/` for model definitions
+3. Compare with TypeScript types (which may be incomplete or in development)
+
+**Do NOT rely solely on TypeScript types in the emulator or client** - always verify against the JavaScript client reference.

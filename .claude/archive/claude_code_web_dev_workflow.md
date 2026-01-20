@@ -28,6 +28,7 @@ This document describes a self-testing workflow for Claude Code agents working o
 4. **Fix before presenting** - If something fails, fix it before telling the user
 5. **Real UI, not headless** - Always test with a visible browser window
 6. **No feature is done until visually verified** - Screenshots prove completion
+7. **NEVER commit or push without explicit user permission** - Always wait for user to say "commit" or "push"
 
 ## Environment Setup
 
