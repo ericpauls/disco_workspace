@@ -14,6 +14,31 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 2. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
 3. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
 
+## Git Submodule Commit/Push Workflow (CRITICAL)
+
+**This workspace uses git submodules.** When committing changes, you MUST commit/push in BOTH places:
+
+### Step 1: Commit/push in the submodule first
+```bash
+cd /Users/ericpauls/Documents/disco_workspace/disco_live_world_client_ui
+git add <files>
+git commit -m "message"
+git push
+```
+
+### Step 2: Commit/push the submodule reference in the parent repo
+```bash
+cd /Users/ericpauls/Documents/disco_workspace
+git add disco_live_world_client_ui  # This stages the new submodule commit reference
+git add <any other changed files like start.sh>
+git commit -m "feat: Update submodule with <description>"
+git push
+```
+
+**Why this matters:** The parent repo (`disco_workspace`) tracks which commit the submodule should be at. If you only push the submodule, other machines pulling the parent repo won't see the changes until the parent repo is also updated.
+
+**How to verify:** After pushing, run `git status` in the parent directory. If it shows `modified: disco_live_world_client_ui (new commits)`, you forgot to commit/push the parent repo.
+
 ## Custom Agents (IMPORTANT)
 
 **ALWAYS delegate to these specialized agents when questions match their domain:**
