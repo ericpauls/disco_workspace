@@ -283,6 +283,9 @@ REM Install client dependencies
 if not "%CLIENT_NEEDS_INSTALL%"=="true" goto :dependencies_ok
 echo [INFO] Installing dependencies for Client (disco_live_world_client_ui)...
 pushd "%CLIENT_DIR%"
+REM Skip Puppeteer browser downloads - avoids SSL issues on corporate networks
+set "PUPPETEER_SKIP_DOWNLOAD=true"
+set "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true"
 call npm install
 if errorlevel 1 goto :client_install_failed
 popd
