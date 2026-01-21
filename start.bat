@@ -417,11 +417,42 @@ echo [INFO] Connecting to server at http://127.0.0.1:%SERVER_PORT%/apidocs
 REM Start client in new window
 start "DiSCO Client" /D "%CLIENT_DIR%" cmd /c "npm run dev -- --port %CLIENT_PORT%"
 
-REM Brief wait to ensure process started
-timeout /t 2 /nobreak >nul 2>&1
+REM Wait for client to be ready
+call :wait_for_client
+if errorlevel 1 (
+    echo [ERROR] Failed to start client
+    exit /b 1
+)
 
-echo [OK] Client started!
 exit /b 0
+
+:wait_for_client
+echo [INFO] Waiting for client to be ready...
+
+set "MAX_ATTEMPTS=30"
+set "ATTEMPT=0"
+
+:wait_loop_client
+if %ATTEMPT% geq %MAX_ATTEMPTS% (
+    echo [ERROR] Client failed to start within %MAX_ATTEMPTS% seconds
+    exit /b 1
+)
+
+REM Try to connect to client
+curl -s --connect-timeout 1 "http://127.0.0.1:%CLIENT_PORT%/" >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] Client is ready!
+    exit /b 0
+)
+
+timeout /t 1 /nobreak >nul 2>&1
+set /a "ATTEMPT+=1"
+
+REM Show progress every 5 seconds
+set /a "MOD=ATTEMPT %% 5"
+if %MOD%==0 echo [INFO] Still waiting... (%ATTEMPT%s)
+
+goto :wait_loop_client
 
 REM ==============================================================================
 REM BROWSER FUNCTION
