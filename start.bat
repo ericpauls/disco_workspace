@@ -433,11 +433,8 @@ if not "%OPEN_BROWSER%"=="true" goto :eof
 echo [INFO] Opening browser...
 
 set "CLIENT_URL=http://127.0.0.1:%CLIENT_PORT%"
-set "DASHBOARD_URL=http://127.0.0.1:%SERVER_PORT%/dashboard"
 
-REM Open dashboard first, then client
-start "" "%DASHBOARD_URL%"
-timeout /t 1 /nobreak >nul 2>&1
+REM Open client (dashboard is now accessible via the client's server config popover)
 start "" "%CLIENT_URL%"
 
 goto :eof
