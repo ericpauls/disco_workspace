@@ -7,26 +7,40 @@ C4 model diagrams showing the DiSCO development environment at four levels of ab
 Shows DiSCO in its broader context - the people who use it and the systems it interacts with.
 
 ```mermaid
-C4Context
-    title System Context Diagram for DiSCO Development Environment
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph users["&nbsp;&nbsp;Users&nbsp;&nbsp;"]
+        direction TB
+        dev["<b>Developer</b><br/><i>Builds & tests apps</i>"]
+        analyst["<b>EW Analyst</b><br/><i>Views COP data</i>"]
+    end
 
-    Person(developer, "Developer", "Builds and tests DiSCO client applications")
-    Person(analyst, "EW Analyst", "Views Common Operating Picture and analyzes entity data")
+    disco["<b>DiSCO Dev Environment</b><br/><i>Simulates full ecosystem</i>"]
 
-    System(disco_dev, "DiSCO Development Environment", "Simulates the full DiSCO ecosystem for development and testing")
+    subgraph external["&nbsp;&nbsp;Production Systems&nbsp;&nbsp;"]
+        direction TB
+        endpoints["<b>DiSCO Endpoints</b><br/><i>DECEPTOR sensors</i>"]
+        prod["<b>Production DiSCO</b><br/><i>L3Harris AWS</i>"]
+        tak["<b>TAK Server</b><br/><i>CoT integration</i>"]
+    end
 
-    System_Ext(real_disco, "Production DiSCO Server", "Real L3Harris DiSCO cloud infrastructure (AWS)")
-    System_Ext(real_endpoints, "Real DiSCO Endpoints", "DECEPTOR payloads on UAVs, USVs, land stations")
-    System_Ext(tak_server, "TAK Server", "Tactical Assault Kit integration")
+    dev -->|develops| disco
+    analyst -->|views| disco
+    disco -.->|API compatible| prod
+    endpoints -->|reports| prod
+    prod -->|feeds| tak
 
-    Rel(developer, disco_dev, "Develops against", "localhost")
-    Rel(analyst, disco_dev, "Views simulated data", "Browser")
+    classDef person fill:#08427B,stroke:#052E56,color:#fff,stroke-width:2px
+    classDef system fill:#1168BD,stroke:#0B4884,color:#fff,stroke-width:2px
+    classDef ext fill:#666,stroke:#444,color:#fff,stroke-width:2px
+    classDef userbox fill:#E8F4FD,stroke:#08427B,stroke-width:1px
+    classDef extbox fill:#F5F5F5,stroke:#666,stroke-width:1px
 
-    Rel(disco_dev, real_disco, "API-compatible with", "REST/WebSocket")
-    Rel(real_endpoints, real_disco, "Reports to", "UCI Messages")
-    Rel(real_disco, tak_server, "Integrates with", "CoT")
-
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    class dev,analyst person
+    class disco system
+    class prod,endpoints,tak ext
+    class users userbox
+    class external extbox
 ```
 
 ## Level 2: Container Diagram
@@ -34,40 +48,46 @@ C4Context
 Shows the high-level technology choices and how the containers communicate.
 
 ```mermaid
-C4Container
-    title Container Diagram for DiSCO Development Environment
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '13px'}}}%%
+flowchart LR
+    dev["<b>Developer</b>"]
 
-    Person(developer, "Developer", "Builds and tests DiSCO applications")
+    subgraph disco["&nbsp;&nbsp;DiSCO Development Environment&nbsp;&nbsp;"]
+        direction TB
+        client["<b>Client UI</b><br/><i>React 19, Vite</i><br/>:3000"]
+        server["<b>Surrogate Server</b><br/><i>Express.js</i><br/>:8765"]
+        sim["<b>Simulation Engine</b><br/><i>TypeScript</i>"]
 
-    System_Boundary(disco_dev, "DiSCO Development Environment") {
-        Container(client_ui, "Client UI", "React 19, Vite, TypeScript", "Visualizes entities on maps and tables. Provides Common Operating Picture.")
+        subgraph stores["Data Stores"]
+            direction LR
+            entity_db[("Entities")]
+            pos_db[("Positions")]
+            lw_db[("Live World")]
+        end
+    end
 
-        Container(surrogate_server, "Surrogate DiSCO Server", "Express.js, TypeScript", "Emulates DiSCO API. Stores entity reports, position reports, and live world model.")
+    js_client["<b>JS API Client</b><br/><i>OpenAPI</i>"]
 
-        Container(simulation_engine, "Simulation Engine", "TypeScript", "Generates truth data, simulates endpoint observations with measurement noise.")
+    dev -->|Browser| client
+    client --> js_client
+    js_client -->|REST| server
 
-        ContainerDb(entity_store, "Entity Store", "In-Memory Array", "Stores raw entity reports from simulated endpoints")
+    sim --> stores
+    server --> stores
 
-        ContainerDb(position_store, "Position Store", "In-Memory Array", "Stores position reports from simulated endpoints")
+    classDef person fill:#08427B,stroke:#052E56,color:#fff,stroke-width:2px
+    classDef container fill:#438DD5,stroke:#2E6295,color:#fff,stroke-width:2px
+    classDef db fill:#438DD5,stroke:#2E6295,color:#fff,stroke-width:2px
+    classDef ext fill:#666,stroke:#444,color:#fff,stroke-width:2px
+    classDef boundary fill:#E8F4FD,stroke:#1168BD,stroke-width:2px
+    classDef storebox fill:#fff,stroke:#438DD5,stroke-width:1px,stroke-dasharray: 5 5
 
-        ContainerDb(liveworld_store, "Live World Store", "In-Memory Array", "Canonical view - one row per physical entity")
-    }
-
-    System_Ext(js_client, "JavaScript API Client", "Auto-generated OpenAPI client for DiSCO APIs")
-
-    Rel(developer, client_ui, "Views", "Browser :3000")
-    Rel(client_ui, surrogate_server, "Fetches data", "HTTP REST :8765")
-    Rel(client_ui, js_client, "Uses", "npm package")
-
-    Rel(simulation_engine, entity_store, "Writes entity reports")
-    Rel(simulation_engine, position_store, "Writes position reports")
-    Rel(simulation_engine, liveworld_store, "Updates live world")
-
-    Rel(surrogate_server, entity_store, "Reads")
-    Rel(surrogate_server, position_store, "Reads")
-    Rel(surrogate_server, liveworld_store, "Reads")
-
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    class dev person
+    class client,server,sim container
+    class entity_db,pos_db,lw_db db
+    class js_client ext
+    class disco boundary
+    class stores storebox
 ```
 
 ## Level 3: Component Diagram - Surrogate Server
@@ -75,64 +95,51 @@ C4Container
 Shows the internal components of the Surrogate DiSCO Server.
 
 ```mermaid
-C4Component
-    title Component Diagram for Surrogate DiSCO Server
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
+flowchart LR
+    subgraph server["Surrogate Server"]
+        direction TB
+        express["<b>Express App</b><br/><i>HTTP routing</i>"]
 
-    Container_Boundary(server, "Surrogate DiSCO Server") {
+        subgraph apis["REST APIs"]
+            entities["Entities"]
+            positions["Positions"]
+            liveworld["LiveWorld"]
+            simctl["Control"]
+        end
 
-        Component(express_app, "Express Application", "Express.js", "HTTP server, routing, middleware")
+        subgraph stores["Data Stores"]
+            e_db[("E")]
+            p_db[("P")]
+            lw_db[("LW")]
+        end
 
-        Component(entities_api, "Entities API", "REST Controller", "/apidocs/entities/* endpoints for entity report CRUD")
+        express --> apis
+        apis --> stores
+    end
 
-        Component(position_api, "Position Reports API", "REST Controller", "/apidocs/positionReports/* endpoints")
+    subgraph sim["Simulation Engine"]
+        engine["<b>Engine</b><br/><i>Main loop</i>"]
+        mgr["EntityMgr"]
+        measure["Measurement"]
 
-        Component(liveworld_api, "Live World API", "REST Controller", "/apidocs/liveWorldModel/* endpoints")
+        engine --> mgr
+        engine --> measure
+    end
 
-        Component(sim_control_api, "Simulation Control API", "REST Controller", "/apidocs/simulation/* pause/resume/clear")
+    engine --> stores
+    simctl -.->|controls| engine
 
-        Component(endpoint_mgmt_api, "Endpoint Management API", "REST Controller", "/apidocs/endpoints/* pause/resume individual endpoints")
+    classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
+    classDef sbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
+    classDef simbox fill:#F0F0F0,stroke:#888,stroke-width:2px
+    classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-        Component(health_api, "Health & Metrics API", "REST Controller", "/apidocs/health, /apidocs/metrics")
-
-        ComponentDb(entity_store, "Entity Store", "In-Memory", "Stores entity reports with history limit")
-
-        ComponentDb(position_store, "Position Store", "In-Memory", "Stores position reports with history limit")
-
-        ComponentDb(liveworld_store, "Live World Store", "In-Memory", "Current state of all entities")
-    }
-
-    Container_Boundary(simulation, "Simulation Engine") {
-        Component(sim_engine, "Simulation Engine", "TypeScript Class", "Main loop: updates positions, generates reports")
-
-        Component(entity_manager, "Entity Manager", "TypeScript Class", "Manages truth entities and endpoints separately")
-
-        Component(measurement_model, "Measurement Model", "TypeScript Module", "Visibility checks, noise application")
-
-        Component(scenario_loader, "Scenario Loader", "TypeScript Module", "Loads scenario configs (EndpointTestScenario, etc.)")
-    }
-
-    Rel(express_app, entities_api, "Routes to")
-    Rel(express_app, position_api, "Routes to")
-    Rel(express_app, liveworld_api, "Routes to")
-    Rel(express_app, sim_control_api, "Routes to")
-    Rel(express_app, endpoint_mgmt_api, "Routes to")
-    Rel(express_app, health_api, "Routes to")
-
-    Rel(entities_api, entity_store, "Reads/Writes")
-    Rel(position_api, position_store, "Reads/Writes")
-    Rel(liveworld_api, liveworld_store, "Reads/Writes")
-
-    Rel(sim_engine, entity_manager, "Updates entities")
-    Rel(sim_engine, measurement_model, "Generates observations")
-    Rel(sim_engine, entity_store, "Writes reports")
-    Rel(sim_engine, position_store, "Writes reports")
-    Rel(sim_engine, liveworld_store, "Updates")
-
-    Rel(scenario_loader, entity_manager, "Configures")
-    Rel(sim_control_api, sim_engine, "Controls")
-    Rel(endpoint_mgmt_api, entity_manager, "Controls endpoints")
-
-    UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="2")
+    class express,entities,positions,liveworld,simctl,engine,mgr,measure comp
+    class e_db,p_db,lw_db comp
+    class server sbox
+    class sim simbox
+    class apis,stores inner
 ```
 
 ## Level 3: Component Diagram - Client UI
@@ -140,56 +147,49 @@ C4Component
 Shows the internal components of the Client UI application.
 
 ```mermaid
-C4Component
-    title Component Diagram for Client UI
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
+flowchart LR
+    subgraph client["Client UI Application"]
+        direction TB
+        shell["<b>App Shell</b><br/><i>Layout & tabs</i>"]
 
-    Container_Boundary(client, "Client UI Application") {
+        subgraph tabs["Tab Views"]
+            lw_tab["LiveWorld"]
+            ent_tab["Entities"]
+            pos_tab["Positions"]
+        end
 
-        Component(app_shell, "App Shell", "React Component", "Main layout, tab navigation, theme switching")
+        subgraph views["Shared Components"]
+            map["Map View"]
+            table["Data Table"]
+            details["Details Panel"]
+        end
 
-        Component(map_view, "Map View", "React + Leaflet", "Interactive map with entity markers, uncertainty ellipses")
+        subgraph data["Data Layer"]
+            polling["Polling Hook"]
+            api_svc["API Service"]
+        end
 
-        Component(data_table, "Data Table", "React + TanStack Table", "Sortable, filterable entity grid")
+        shell --> tabs
+        tabs --> views
+        polling --> api_svc
+    end
 
-        Component(entity_details, "Entity Details Panel", "React Component", "Selected entity information display")
+    js_client["<b>JS API Client</b><br/><i>OpenAPI</i>"]
+    server["<b>Server</b><br/><i>:8765</i>"]
 
-        Component(sim_controls, "Simulation Controls", "React Component", "Pause/resume, endpoint management")
+    api_svc --> js_client
+    js_client --> server
 
-        Component(liveworld_tab, "Live World Tab", "React Component", "Displays liveWorldModel data")
+    classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
+    classDef cbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
+    classDef ext fill:#666,stroke:#444,color:#fff
+    classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-        Component(entities_tab, "Entity Reports Tab", "React Component", "Displays raw entity reports")
-
-        Component(positions_tab, "Position Reports Tab", "React Component", "Displays endpoint position reports")
-
-        Component(api_service, "API Service", "TypeScript Module", "HTTP client for server communication")
-
-        Component(polling_hook, "Polling Hook", "React Hook", "useInterval for real-time updates")
-
-        Component(test_api, "Test API", "Browser Global", "window.__testAPI__ for Playwright automation")
-    }
-
-    Container_Ext(server, "Surrogate DiSCO Server", "Express.js")
-    Container_Ext(js_client, "JavaScript API Client", "OpenAPI Generated")
-
-    Rel(app_shell, liveworld_tab, "Renders")
-    Rel(app_shell, entities_tab, "Renders")
-    Rel(app_shell, positions_tab, "Renders")
-    Rel(app_shell, sim_controls, "Renders")
-
-    Rel(liveworld_tab, map_view, "Uses")
-    Rel(liveworld_tab, data_table, "Uses")
-    Rel(entities_tab, data_table, "Uses")
-    Rel(positions_tab, data_table, "Uses")
-
-    Rel(map_view, entity_details, "Opens on click")
-
-    Rel(polling_hook, api_service, "Triggers fetches")
-    Rel(api_service, js_client, "Uses")
-    Rel(js_client, server, "HTTP REST", ":8765")
-
-    Rel(test_api, app_shell, "Controls for E2E tests")
-
-    UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
+    class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc comp
+    class client cbox
+    class js_client,server ext
+    class tabs,views,data inner
 ```
 
 ## Level 3: Component Diagram - Simulation Engine
@@ -197,57 +197,55 @@ C4Component
 Shows the internal components of the Simulation Engine in detail.
 
 ```mermaid
-C4Component
-    title Component Diagram for Simulation Engine
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
+flowchart LR
+    subgraph sim["Simulation Engine"]
+        direction TB
+        loop["<b>Sim Loop</b><br/><i>100ms tick</i>"]
 
-    Container_Boundary(simulation, "Simulation Engine") {
+        subgraph entities["Entity Management"]
+            mgr["Entity Manager"]
+            truth["Truth Entities"]
+            endpoints["Endpoints"]
+        end
 
-        Component(sim_loop, "Simulation Loop", "setInterval", "Ticks every 100ms, updates all entities")
+        subgraph measurement["Measurement Model"]
+            visibility["Visibility"]
+            geo_noise["Geo Noise"]
+            sig_noise["Signal Noise"]
+        end
 
-        Component(entity_manager, "Entity Manager", "TypeScript Class", "Tracks truth entities separately from endpoints")
+        subgraph output["Output"]
+            reporter["Report Gen"]
+        end
 
-        Component(truth_entities, "Truth Entities", "Entity Classes", "Land, Maritime, Air entities with motion models")
+        loop --> entities
+        loop --> measurement
+        measurement --> output
+    end
 
-        Component(disco_endpoints, "DiSCO Endpoints", "Endpoint Classes", "DECEPTOR-LAND, SEA, AIR with sensor configs")
+    subgraph stores["Data Stores"]
+        e_db[("Entities")]
+        p_db[("Positions")]
+    end
 
-        Component(motion_models, "Motion Models", "TypeScript Module", "Patrol, Transit, Waypoint, Stationary patterns")
+    scenario["<b>Scenario Config</b>"]
 
-        Component(emitter_profiles, "Emitter Profiles", "TypeScript Data", "Realistic RF signal characteristics by type")
+    scenario --> entities
+    reporter --> stores
+    endpoints --> stores
 
-        Component(visibility_check, "Visibility Check", "TypeScript Function", "Range and line-of-sight calculations")
+    classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
+    classDef sbox fill:#F0F0F0,stroke:#888,stroke-width:2px
+    classDef ext fill:#666,stroke:#444,color:#fff
+    classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
+    classDef db fill:#85BBF0,stroke:#5A9BD5,color:#000
 
-        Component(geo_noise, "Geolocation Noise", "TypeScript Function", "Bearing/range error with Gaussian distribution")
-
-        Component(signal_noise, "Signal Noise", "TypeScript Function", "Frequency/PRI/PW/amplitude noise")
-
-        Component(report_generator, "Report Generator", "TypeScript Class", "Creates EntityReport and PositionReport objects")
-
-        Component(scenario_config, "Scenario Configuration", "TypeScript Data", "EndpointTestScenario, ContestedMaritimeScenario")
-    }
-
-    ComponentDb(entity_store, "Entity Store", "External")
-    ComponentDb(position_store, "Position Store", "External")
-
-    Rel(sim_loop, entity_manager, "Updates each tick")
-    Rel(entity_manager, truth_entities, "Manages")
-    Rel(entity_manager, disco_endpoints, "Manages")
-
-    Rel(truth_entities, motion_models, "Uses")
-    Rel(disco_endpoints, motion_models, "Uses")
-    Rel(truth_entities, emitter_profiles, "Uses")
-
-    Rel(sim_loop, visibility_check, "For each endpoint-entity pair")
-    Rel(visibility_check, geo_noise, "If visible")
-    Rel(geo_noise, signal_noise, "Apply noise chain")
-    Rel(signal_noise, report_generator, "Create report")
-
-    Rel(report_generator, entity_store, "Writes entity reports")
-    Rel(disco_endpoints, position_store, "Writes position reports")
-
-    Rel(scenario_config, entity_manager, "Initializes")
-    Rel(scenario_config, disco_endpoints, "Configures sensors")
-
-    UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
+    class loop,mgr,truth,endpoints,visibility,geo_noise,sig_noise,reporter comp
+    class e_db,p_db db
+    class sim sbox
+    class scenario ext
+    class entities,measurement,output,stores inner
 ```
 
 ## Deployment Diagram
@@ -255,38 +253,44 @@ C4Component
 Shows how the system is deployed for local development.
 
 ```mermaid
-C4Deployment
-    title Deployment Diagram for DiSCO Development Environment
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
+flowchart TB
+    subgraph machine["Developer Machine"]
+        direction LR
 
-    Deployment_Node(dev_machine, "Developer Machine", "macOS/Windows/Linux") {
+        subgraph browser["Browser"]
+            client_ui["<b>Client UI</b><br/><i>localhost:3000</i>"]
+        end
 
-        Deployment_Node(browser, "Web Browser", "Chrome/Firefox/Safari") {
-            Container(client_instance, "Client UI", "React App", "http://localhost:3000")
-        }
+        subgraph node["Node.js Runtime"]
+            direction TB
+            vite["<b>Vite Dev Server</b><br/><i>:3000 HMR</i>"]
+            express["<b>Express Server</b><br/><i>:8765 API</i>"]
+            sim["<b>Simulation</b>"]
+        end
 
-        Deployment_Node(node_runtime, "Node.js Runtime", "Node 18+") {
+        subgraph files["File System"]
+            js_client["JS Client"]
+            screenshots["Screenshots"]
+        end
+    end
 
-            Deployment_Node(vite_server, "Vite Dev Server", "Port 3000") {
-                Container(client_build, "Client Build", "React 19 + TypeScript", "Hot module replacement")
-            }
+    client_ui -->|loads| vite
+    client_ui -->|REST| express
+    vite --> js_client
+    express --> sim
 
-            Deployment_Node(express_server, "Express Server", "Port 8765") {
-                Container(server_instance, "Surrogate Server", "Express.js + TypeScript", "DiSCO API emulation")
-                Container(sim_instance, "Simulation Engine", "TypeScript", "Entity simulation")
-            }
-        }
+    classDef runtime fill:#85BBF0,stroke:#5A9BD5,color:#000
+    classDef browser fill:#438DD5,stroke:#2E6295,color:#fff
+    classDef file fill:#888,stroke:#666,color:#fff
+    classDef machine fill:#E8F4FD,stroke:#1168BD,stroke-width:2px
+    classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-        Deployment_Node(filesystem, "File System", "Local") {
-            Container(screenshots, "Screenshots", "./screenshots/", "Visual test artifacts")
-            Container(js_client_pkg, "JavaScript Client", "./javascript-client/", "Generated API client")
-        }
-    }
-
-    Rel(client_instance, client_build, "Loads from", "HTTP")
-    Rel(client_instance, server_instance, "Fetches data", "HTTP REST")
-    Rel(client_build, js_client_pkg, "Imports", "npm")
-
-    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="1")
+    class client_ui browser
+    class vite,express,sim runtime
+    class js_client,screenshots file
+    class machine machine
+    class browser,node,files inner
 ```
 
 ## Summary: C4 Levels

@@ -44,6 +44,42 @@ When asked to "run tests", "verify", "test the client/server", or complete ANY i
 - `/Users/ericpauls/Documents/disco_workspace/.claude/archive/claude_code_web_dev_workflow.md`
 - `/Users/ericpauls/Documents/disco_workspace/.claude/archive/entity-reporting-implementation-plan.md`
 
+## Mermaid Diagram Best Practices
+
+When creating or updating architecture diagrams:
+
+### Prefer flowchart over C4 syntax
+- Mermaid C4 diagrams have limited layout control and frequent text overlap issues
+- Use `flowchart LR` (left-right) or `flowchart TB` (top-bottom) for better control
+- C4 concepts can still be represented with proper styling
+
+### Layout guidelines
+- **Target viewport**: 900x600 px - diagrams should fit without scrolling
+- **Prefer horizontal (LR)** layouts for context/container diagrams
+- **Use subgraphs** to group related elements (Users, External Systems, Data Stores)
+- **Keep labels short** - use abbreviations and break text with `<br/>`
+
+### Styling conventions
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
+```
+
+| Element Type | Fill Color | Use Case |
+|-------------|-----------|----------|
+| Person/User | `#08427B` | Human actors |
+| Internal System | `#1168BD` | Core systems |
+| Container | `#438DD5` | Application containers |
+| Component | `#85BBF0` | Internal components |
+| External | `#666` | External systems |
+| Boundary box | `#E8F4FD` | Grouping internal elements |
+| External box | `#F5F5F5` | Grouping external elements |
+
+### Testing diagrams
+- Create HTML test file with diagram
+- Use Puppeteer to screenshot at 900x600
+- Verify no text overlap and all elements visible
+- Iterate until clean
+
 ## Response pattern
 
 1. Reference the appropriate workflow document
