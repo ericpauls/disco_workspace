@@ -4,106 +4,58 @@ This document shows the database table relationships and UUID system in DiSCO.
 
 ## Entity Relationship Diagram
 
+Shows key fields only. See Implementation Status section for complete field documentation.
+
 ```mermaid
 erDiagram
-    %% ============================================
-    %% SOURCE-SIDE (Endpoint-Generated)
-    %% ============================================
-
     DISCO_ENDPOINT {
-        uuid source_payload_uuid PK "Constant endpoint identity"
-        string name "e.g., DECEPTOR-ALPHA"
-        enum domain "land | maritime | air"
-        json sensor_config "Detection ranges, noise params"
+        uuid source_payload_uuid PK
+        string name
+        enum domain
     }
 
-    %% ============================================
-    %% CORE DATA TABLES
-    %% ============================================
-
     ENTITIES {
-        uuid entity_msg_uuid PK "Server-assigned (new per report)"
-        uuid source_entity_uuid "Endpoint's internal tracking ID"
-        uuid source_payload_uuid FK "Which endpoint sent this"
-        uuid pulsedata_uuid FK "Optional: raw pulse data ref"
-        json position "lat/lon/alt of OBSERVED entity"
-        json ellipse "Uncertainty bounds (orientation, axes)"
-        json frequency_range "min/max/avg MHz"
-        json pri_range "min/max/avg microseconds"
-        json pulsewidth_range "min/max/avg microseconds"
-        float amplitude_avg "dBm"
-        string elnot "ELNOT identifier"
-        enum emitter_type "RADAR | COMMUNICATIONS | JAMMER | MISSILE"
-        enum modulation "PULSED | PULSE_DOPPLER | CW | FHSS | etc"
-        bigint latest_timestamp "Unix ms"
-        bigint created_timestamp "Server creation time"
-        float observation_distance_km "Optional"
-        float observation_bearing_deg "Optional"
+        uuid entity_msg_uuid PK
+        uuid source_entity_uuid
+        uuid source_payload_uuid FK
+        json position
+        json ellipse
+        string elnot
+        enum emitter_type
+        bigint latest_timestamp
     }
 
     POSITION_REPORTS {
-        uuid position_report_uuid PK "Server-assigned"
-        uuid source_position_report_uuid "Endpoint's report ID"
-        uuid source_payload_uuid FK "Which endpoint sent this"
-        json position "lat/lon/alt of ENDPOINT itself"
-        json dof "pitch/roll/yaw"
-        float magnetic_heading "degrees"
-        float heading "degrees"
-        float speed "knots or m/s"
-        string altitude_reference "Reference system"
-        bigint latest_timestamp "Unix ms"
-        bigint created_timestamp "Server creation time"
+        uuid position_report_uuid PK
+        uuid source_payload_uuid FK
+        json position
+        bigint latest_timestamp
     }
 
-    %% ============================================
-    %% FUSION TABLES (PLANNED - NOT YET IMPLEMENTED)
-    %% ============================================
-
     FUSED_ENTITY_MAPPING {
-        uuid entity_msg_uuid FK "References ENTITIES"
-        uuid group_uuid "Correlation group ID"
+        uuid entity_msg_uuid FK
+        uuid group_uuid
     }
 
     FUSED_ENTITY_SUMMARY {
-        uuid summary_uuid PK "Server-assigned"
-        uuid group_uuid "Which correlation group"
-        int group_num "Numeric group identifier"
-        json position "Fused/triangulated position"
-        json frequency_range "Aggregated frequency"
-        bigint latest_timestamp "Most recent observation"
-        bigint initial_timestamp "First detection"
+        uuid summary_uuid PK
+        uuid group_uuid
+        json position
     }
-
-    %% ============================================
-    %% LIVE WORLD MODEL (CANONICAL VIEW)
-    %% ============================================
 
     LIVE_WORLD_MODEL {
-        uuid liveworldmodel_uuid PK "Server-assigned"
-        enum origin "fused_entity_summary | position_report"
-        uuid origin_uuid "References source table"
-        uuid entity_msg_uuid "For fused entities"
-        int group_num "For fused entities"
-        json position "Current position"
-        bigint latest_timestamp "Last update"
-        bigint write_timestamp "When row was written"
-        string emitter_type "Entity type"
-        string modulation "Signal modulation"
-        json frequency_range "Signal frequency"
+        uuid liveworldmodel_uuid PK
+        enum origin
+        uuid origin_uuid
+        json position
     }
-
-    %% ============================================
-    %% RELATIONSHIPS
-    %% ============================================
 
     DISCO_ENDPOINT ||--o{ ENTITIES : "reports"
     DISCO_ENDPOINT ||--o{ POSITION_REPORTS : "reports"
-
-    ENTITIES ||--o| FUSED_ENTITY_MAPPING : "correlated to"
-    FUSED_ENTITY_MAPPING }o--|| FUSED_ENTITY_SUMMARY : "summarized as"
-
-    FUSED_ENTITY_SUMMARY ||--o| LIVE_WORLD_MODEL : "published to (fused path)"
-    POSITION_REPORTS ||--o| LIVE_WORLD_MODEL : "published to (direct path)"
+    ENTITIES ||--o| FUSED_ENTITY_MAPPING : "maps to"
+    FUSED_ENTITY_MAPPING }o--|| FUSED_ENTITY_SUMMARY : "summarizes"
+    FUSED_ENTITY_SUMMARY ||--o| LIVE_WORLD_MODEL : "fused path"
+    POSITION_REPORTS ||--o| LIVE_WORLD_MODEL : "direct path"
 ```
 
 ## UUID System Explained
@@ -111,32 +63,37 @@ erDiagram
 DiSCO uses **two UUID namespaces** to track data provenance:
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
 flowchart LR
-    subgraph SourceSide["Source-Side UUIDs (Endpoint-Generated)"]
-        SPU["source_payload_uuid<br/>(Constant per endpoint)"]
-        SEU["source_entity_uuid<br/>(Endpoint's internal tracking)"]
-        SPRU["source_position_report_uuid<br/>(Unique per report)"]
-        SPDU["source_pulsedata_uuid<br/>(Unique per pulse collection)"]
+    subgraph source["Source-Side (Endpoint)"]
+        direction TB
+        spu["source_payload_uuid"]
+        seu["source_entity_uuid"]
+        spru["source_position_report_uuid"]
     end
 
-    subgraph ServerSide["Server-Side UUIDs (DiSCO Server-Assigned)"]
-        EMU["entity_msg_uuid<br/>(NEW for every report)"]
-        PRU["position_report_uuid<br/>(NEW for every report)"]
-        GU["group_uuid<br/>(One per physical entity)"]
-        SU["summary_uuid<br/>(One per state update)"]
-        LWU["liveworldmodel_uuid<br/>(One per live world row)"]
+    subgraph server["Server-Side (DiSCO)"]
+        direction TB
+        emu["entity_msg_uuid"]
+        pru["position_report_uuid"]
+        gu["group_uuid"]
+        su["summary_uuid"]
+        lwu["liveworldmodel_uuid"]
     end
 
-    SPU --> EMU
-    SEU --> EMU
-    SPRU --> PRU
-    EMU --> GU
-    GU --> SU
-    SU --> LWU
-    PRU --> LWU
+    spu --> emu
+    seu --> emu
+    spru --> pru
+    emu --> gu
+    gu --> su
+    su --> lwu
+    pru --> lwu
 
-    style SourceSide fill:#fff3e0,stroke:#e65100
-    style ServerSide fill:#e8f5e9,stroke:#2e7d32
+    classDef sourceStyle fill:#fff3e0,stroke:#e65100
+    classDef serverStyle fill:#e8f5e9,stroke:#2e7d32
+
+    class source sourceStyle
+    class server serverStyle
 ```
 
 ### Why Two UUID Systems?
@@ -144,34 +101,39 @@ flowchart LR
 **Critical Insight**: The server assigns a **NEW** `entity_msg_uuid` for every incoming entity report, regardless of the `source_entity_uuid`.
 
 ```mermaid
-flowchart TB
-    subgraph Endpoint["Endpoint A Reports"]
-        R1["Report 1: source_entity_uuid = 'ent-123'"]
-        R2["Report 2: source_entity_uuid = 'ent-123'"]
-        R3["Report 3: source_entity_uuid = 'ent-123'"]
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
+flowchart LR
+    subgraph endpoint["Endpoint Reports"]
+        direction TB
+        r1["R1: src_ent = 123"]
+        r2["R2: src_ent = 123"]
+        r3["R3: src_ent = 123"]
     end
 
-    subgraph Server["Server Processing"]
-        M1["entity_msg_uuid = 'msg-001'"]
-        M2["entity_msg_uuid = 'msg-002'"]
-        M3["entity_msg_uuid = 'msg-003'"]
+    subgraph server["Server Assigns"]
+        direction TB
+        m1["msg_uuid = 001"]
+        m2["msg_uuid = 002"]
+        m3["msg_uuid = 003"]
     end
 
-    subgraph Correlation["Correlation Result"]
-        G1["All three get: group_uuid = 'group-555'<br/>(Same physical entity)"]
+    subgraph corr["Correlation"]
+        g1["group_uuid = 555<br/>(same entity)"]
     end
 
-    R1 --> M1
-    R2 --> M2
-    R3 --> M3
+    r1 --> m1
+    r2 --> m2
+    r3 --> m3
 
-    M1 --> G1
-    M2 --> G1
-    M3 --> G1
+    m1 & m2 & m3 --> g1
 
-    style Endpoint fill:#fff3e0,stroke:#e65100
-    style Server fill:#e8f5e9,stroke:#2e7d32
-    style Correlation fill:#e3f2fd,stroke:#1565c0
+    classDef epStyle fill:#fff3e0,stroke:#e65100
+    classDef srvStyle fill:#e8f5e9,stroke:#2e7d32
+    classDef corrStyle fill:#e3f2fd,stroke:#1565c0
+
+    class endpoint epStyle
+    class server srvStyle
+    class corr corrStyle
 ```
 
 **Reasons:**
@@ -181,30 +143,36 @@ flowchart TB
 ## Table Relationships Detail
 
 ```mermaid
-flowchart TB
-    subgraph Raw["Raw Data Tables"]
-        E[(entities)]
-        P[(positionReports)]
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
+flowchart LR
+    subgraph raw["Raw Tables"]
+        direction TB
+        e[("entities")]
+        p[("positions")]
     end
 
-    subgraph Fusion["Fusion Tables (Planned)"]
-        FEM[(fusedEntityMapping)]
-        FES[(fusedEntitySummary)]
+    subgraph fusion["Fusion (Planned)"]
+        direction TB
+        fem[("mapping")]
+        fes[("summary")]
     end
 
-    subgraph Canonical["Canonical View"]
-        LW[(liveWorldModel)]
+    subgraph canon["Canonical"]
+        lw[("liveWorld")]
     end
 
-    E -->|"Many entity_msg_uuid"| FEM
-    FEM -->|"One group_uuid"| FES
-    FES -->|"origin='fused_entity_summary'"| LW
+    e -->|N:1| fem
+    fem -->|N:1| fes
+    fes -->|fused| lw
+    p -->|direct| lw
 
-    P -->|"origin='position_report'"| LW
+    classDef rawStyle fill:#e1f5fe,stroke:#01579b
+    classDef fusionStyle fill:#f3e5f5,stroke:#7b1fa2
+    classDef canonStyle fill:#e8f5e9,stroke:#2e7d32
 
-    style Raw fill:#e1f5fe,stroke:#01579b
-    style Fusion fill:#f3e5f5,stroke:#7b1fa2
-    style Canonical fill:#e8f5e9,stroke:#2e7d32
+    class raw rawStyle
+    class fusion fusionStyle
+    class canon canonStyle
 ```
 
 ### Relationship Cardinalities
@@ -223,19 +191,22 @@ flowchart TB
 ### Fused Path (Entity Reports → Live World)
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
 flowchart LR
-    A["Entity Report<br/>(raw observation)"] --> B["Correlation Service<br/>(assign group_uuid)"]
-    B --> C["fusedEntityMapping"]
-    C --> D["Summarization Service<br/>(triangulate position)"]
-    D --> E["fusedEntitySummary<br/>(new row per update)"]
-    E --> F["Live World Service<br/>(query latest per group)"]
-    F --> G["liveWorldModel<br/>(origin='fused_entity_summary')"]
+    a["Entity Report"] --> b["Correlate"]
+    b --> c["Mapping"]
+    c --> d["Summarize"]
+    d --> e["Summary"]
+    e --> f["LiveWorld"]
 
-    style A fill:#fff3e0
-    style B fill:#f3e5f5
-    style D fill:#f3e5f5
-    style F fill:#f3e5f5
-    style G fill:#e8f5e9
+    classDef data fill:#fff3e0,stroke:#e65100
+    classDef svc fill:#f3e5f5,stroke:#7b1fa2
+    classDef out fill:#e8f5e9,stroke:#2e7d32
+
+    class a data
+    class b,d svc
+    class c,e data
+    class f out
 ```
 
 **Status:** PLANNED - Not yet implemented
@@ -243,13 +214,18 @@ flowchart LR
 ### Direct Path (Position Reports → Live World)
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
 flowchart LR
-    A["Position Report<br/>(endpoint self-location)"] --> B["Live World Service<br/>(find/create by source_payload_uuid)"]
-    B --> C["liveWorldModel<br/>(origin='position_report')"]
+    a["Position Report"] --> b["LiveWorld Service"]
+    b --> c["liveWorldModel"]
 
-    style A fill:#fff3e0
-    style B fill:#f3e5f5
-    style C fill:#e8f5e9
+    classDef data fill:#fff3e0,stroke:#e65100
+    classDef svc fill:#f3e5f5,stroke:#7b1fa2
+    classDef out fill:#e8f5e9,stroke:#2e7d32
+
+    class a data
+    class b svc
+    class c out
 ```
 
 **Status:** ✓ IMPLEMENTED

@@ -5,109 +5,79 @@ This diagram shows how the Client UI, Surrogate DiSCO Server, and Truth Data Sce
 ## System Overview Flowchart
 
 ```mermaid
-flowchart TB
-    subgraph TruthLayer["Truth Data Layer (Scenario Generator)"]
-        TruthData[(Truth Data<br/>100+ Entities)]
-        TruthData --> |Real positions,<br/>signal characteristics| Entities
-
-        subgraph Entities["Truth Entities"]
-            Land["Land Entities<br/>(SAM Sites, Coastal Radars)"]
-            Maritime["Maritime Entities<br/>(Ships with Radars)"]
-            Air["Air Entities<br/>(Aircraft)"]
-        end
-    end
-
-    subgraph EndpointLayer["DiSCO Endpoints (Simulated Sensors)"]
-        subgraph EP1["DECEPTOR-LAND"]
-            EP1Sensor["High Accuracy Sensor<br/>200km range<br/>2° bearing error"]
-        end
-        subgraph EP2["DECEPTOR-SEA"]
-            EP2Sensor["Medium Accuracy Sensor<br/>150km range<br/>4° bearing error"]
-        end
-        subgraph EP3["DECEPTOR-AIR"]
-            EP3Sensor["Lower Accuracy Sensor<br/>300km range (altitude advantage)<br/>5° bearing error"]
-        end
-    end
-
-    subgraph MeasurementModel["Measurement Model"]
-        Visibility["Visibility Check<br/>(Range + Line-of-Sight)"]
-        GeoNoise["Geolocation Noise<br/>(Bearing/Range Error)"]
-        SigNoise["Signal Parameter Noise<br/>(Freq/PRI/PW/Amplitude)"]
-    end
-
-    Entities --> |Observe| Visibility
-    Visibility --> |Visible entities| GeoNoise
-    GeoNoise --> SigNoise
-    SigNoise --> |Entity Reports<br/>with measurement noise| EntityReports
-
-    EP1 --> |Position Reports| PosReports
-    EP2 --> |Position Reports| PosReports
-    EP3 --> |Position Reports| PosReports
-
-    subgraph Server["Surrogate DiSCO Server (disco_data_emulator)"]
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
+flowchart LR
+    subgraph truth["Truth Layer"]
         direction TB
-
-        subgraph DataStores["In-Memory Data Stores"]
-            EntityReports[(entities<br/>Raw observations)]
-            PosReports[(positionReports<br/>Endpoint locations)]
-            LiveWorld[(liveWorldModel<br/>Canonical view)]
-        end
-
-        subgraph FutureFusion["Fusion Pipeline (Planned)"]
-            Correlation["Correlation Service<br/>Assign Group IDs"]
-            Summarization["Summarization Service<br/>Triangulation/Tracking"]
-        end
-
-        subgraph APIs["REST API Layer"]
-            EntitiesAPI["/apidocs/entities/*"]
-            PosReportsAPI["/apidocs/positionReports/*"]
-            LiveWorldAPI["/apidocs/liveWorldModel/*"]
-            SimControlAPI["/apidocs/simulation/*<br/>/apidocs/endpoints/*"]
-        end
-
-        EntityReports -.-> |Future| Correlation
-        Correlation -.-> |Future| Summarization
-        Summarization -.-> |Future| LiveWorld
-
-        PosReports --> |Direct Path| LiveWorld
-        TruthData --> |Current: Direct| LiveWorld
+        td[("Truth Data")]
+        ents["Land | Maritime | Air"]
+        td --> ents
     end
 
-    subgraph Client["Client UI (disco_live_world_client_ui)"]
+    subgraph endpoints["Endpoints"]
         direction TB
-
-        subgraph Views["UI Views"]
-            MapView["Leaflet Map<br/>Interactive visualization"]
-            DataTable["TanStack Table<br/>Entity data grid"]
-        end
-
-        subgraph Tabs["Data Tabs"]
-            LiveWorldTab["LIVE_WORLD Tab"]
-            EntityTab["ENTITY_REPORTS Tab"]
-            PosTab["POSITION_REPORTS Tab"]
-        end
-
-        subgraph ClientServices["Services"]
-            Polling["Polling Service<br/>(Real-time updates)"]
-            APIClient["API Client<br/>(JavaScript SDK)"]
-        end
-
-        Polling --> APIClient
-        APIClient --> |Fetch data| Tabs
-        Tabs --> Views
+        ep1["LAND 200km"]
+        ep2["SEA 150km"]
+        ep3["AIR 300km"]
     end
 
-    EntitiesAPI --> |HTTP GET| APIClient
-    PosReportsAPI --> |HTTP GET| APIClient
-    LiveWorldAPI --> |HTTP GET| APIClient
-    SimControlAPI --> |HTTP POST| APIClient
+    subgraph measure["Measurement Model"]
+        direction TB
+        vis["Visibility"]
+        geo["Geo Noise"]
+        sig["Signal Noise"]
+        vis --> geo --> sig
+    end
 
-    style TruthLayer fill:#e1f5fe,stroke:#01579b
-    style EndpointLayer fill:#fff3e0,stroke:#e65100
-    style MeasurementModel fill:#f3e5f5,stroke:#7b1fa2
-    style Server fill:#e8f5e9,stroke:#2e7d32
-    style Client fill:#fce4ec,stroke:#c2185b
-    style FutureFusion fill:#fff,stroke:#999,stroke-dasharray: 5 5
+    subgraph server["Server :8765"]
+        direction TB
+        subgraph stores["Data Stores"]
+            direction LR
+            ent[("Entities")]
+            pos[("Positions")]
+            lw[("LiveWorld")]
+        end
+        subgraph fusion["Fusion (Planned)"]
+            direction LR
+            corr["Correlate"]
+            summ["Summarize"]
+            corr --> summ
+        end
+        subgraph api["REST APIs"]
+            direction LR
+            apis["/entities | /positions | /liveWorld"]
+        end
+    end
+
+    subgraph client["Client :3000"]
+        direction TB
+        tabs["Tabs"]
+        views["Map | Table"]
+        tabs --> views
+    end
+
+    ents --> measure
+    sig -->|reports| ent
+    endpoints -->|position| pos
+    ent -.->|future| corr
+    summ -.->|future| lw
+    pos --> lw
+    td -->|direct| lw
+    apis --> client
+
+    classDef truthStyle fill:#e1f5fe,stroke:#01579b
+    classDef endpointStyle fill:#fff3e0,stroke:#e65100
+    classDef measureStyle fill:#f3e5f5,stroke:#7b1fa2
+    classDef serverStyle fill:#e8f5e9,stroke:#2e7d32
+    classDef clientStyle fill:#fce4ec,stroke:#c2185b
+    classDef futureStyle fill:#fff,stroke:#999,stroke-dasharray: 5 5
+
+    class truth truthStyle
+    class endpoints endpointStyle
+    class measure measureStyle
+    class server serverStyle
+    class client clientStyle
+    class fusion futureStyle
 ```
 
 ## Data Flow Summary
@@ -136,32 +106,32 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-    participant Client as Client UI
-    participant Server as DiSCO Server
-    participant Sim as Simulation Engine
-    participant Endpoints as DiSCO Endpoints
-    participant Truth as Truth Data
+    participant C as Client
+    participant S as Server
+    participant Sim as Simulation
+    participant EP as Endpoints
+    participant T as Truth
 
-    loop Every 1 second
-        Sim->>Truth: Update entity positions
-        Sim->>Endpoints: Update endpoint positions
+    loop Every 1s (Simulation)
+        Sim->>T: Update positions
+        Sim->>EP: Update positions
 
-        loop For each endpoint
-            Endpoints->>Truth: Observe visible entities
-            Endpoints->>Sim: Generate Entity Reports (with noise)
-            Endpoints->>Sim: Generate Position Report
+        loop Per endpoint
+            EP->>T: Observe entities
+            EP->>Sim: Entity reports
+            EP->>Sim: Position report
         end
 
-        Sim->>Server: Store reports in memory
+        Sim->>S: Store reports
     end
 
-    loop Every 2 seconds (polling)
-        Client->>Server: GET /liveWorldModel/getLatest
-        Server-->>Client: Live World entities
-        Client->>Server: GET /entities/getLatest
-        Server-->>Client: Entity Reports
-        Client->>Server: GET /positionReports/getLatest
-        Server-->>Client: Position Reports
-        Client->>Client: Update map & tables
+    loop Every 2s (Polling)
+        C->>S: GET /liveWorld
+        S-->>C: Entities
+        C->>S: GET /entities
+        S-->>C: Reports
+        C->>S: GET /positions
+        S-->>C: Positions
+        C->>C: Update UI
     end
 ```
