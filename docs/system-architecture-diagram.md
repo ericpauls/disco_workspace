@@ -5,79 +5,45 @@ This diagram shows how the Client UI, Surrogate DiSCO Server, and Truth Data Sce
 ## System Overview Flowchart
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '11px'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '13px'}}}%%
 flowchart LR
-    subgraph truth["Truth Layer"]
-        direction TB
-        td[("Truth Data")]
-        ents["Land | Maritime | Air"]
-        td --> ents
+    subgraph sim["&nbsp;&nbsp;Simulation Engine&nbsp;&nbsp;"]
+        truth[("Truth<br/>Data")]
+        mm["Measurement<br/>Model"]
+        truth --> mm
     end
 
-    subgraph endpoints["Endpoints"]
-        direction TB
-        ep1["LAND 200km"]
-        ep2["SEA 150km"]
-        ep3["AIR 300km"]
+    subgraph eps["&nbsp;&nbsp;Endpoints&nbsp;&nbsp;"]
+        ep1["LAND"]
+        ep2["SEA"]
+        ep3["AIR"]
     end
 
-    subgraph measure["Measurement Model"]
-        direction TB
-        vis["Visibility"]
-        geo["Geo Noise"]
-        sig["Signal Noise"]
-        vis --> geo --> sig
+    subgraph srv["&nbsp;&nbsp;Server :8765&nbsp;&nbsp;"]
+        ent[("entities")]
+        pos[("positions")]
+        lw[("liveWorld")]
     end
 
-    subgraph server["Server :8765"]
-        direction TB
-        subgraph stores["Data Stores"]
-            direction LR
-            ent[("Entities")]
-            pos[("Positions")]
-            lw[("LiveWorld")]
-        end
-        subgraph fusion["Fusion (Planned)"]
-            direction LR
-            corr["Correlate"]
-            summ["Summarize"]
-            corr --> summ
-        end
-        subgraph api["REST APIs"]
-            direction LR
-            apis["/entities | /positions | /liveWorld"]
-        end
-    end
+    ui["&nbsp;&nbsp;Client :3000&nbsp;&nbsp;"]
 
-    subgraph client["Client :3000"]
-        direction TB
-        tabs["Tabs"]
-        views["Map | Table"]
-        tabs --> views
-    end
-
-    ents --> measure
-    sig -->|reports| ent
-    endpoints -->|position| pos
-    ent -.->|future| corr
-    summ -.->|future| lw
+    mm -->|observe| eps
+    eps -->|entity<br/>reports| ent
+    eps -->|position<br/>reports| pos
     pos --> lw
-    td -->|direct| lw
-    apis --> client
+    truth -.->|direct<br/>feed| lw
+    ent -.->|future:<br/>fusion| lw
+    lw -->|REST| ui
 
-    classDef truthStyle fill:#e1f5fe,stroke:#01579b
-    classDef endpointStyle fill:#fff3e0,stroke:#e65100
-    classDef measureStyle fill:#f3e5f5,stroke:#7b1fa2
-    classDef serverStyle fill:#e8f5e9,stroke:#2e7d32
-    classDef clientStyle fill:#fce4ec,stroke:#c2185b
-    classDef futureStyle fill:#fff,stroke:#999,stroke-dasharray: 5 5
+    classDef simStyle fill:#e1f5fe,stroke:#01579b
+    classDef epStyle fill:#fff3e0,stroke:#e65100
+    classDef srvStyle fill:#e8f5e9,stroke:#2e7d32
+    classDef uiStyle fill:#fce4ec,stroke:#c2185b
 
-    class truth truthStyle
-    class endpoints endpointStyle
-    class measure measureStyle
-    class server serverStyle
-    class client clientStyle
-    class fusion futureStyle
+    class sim simStyle
+    class eps epStyle
+    class srv srvStyle
+    class ui uiStyle
 ```
 
 ## Data Flow Summary
