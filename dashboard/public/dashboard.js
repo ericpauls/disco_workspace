@@ -45,6 +45,13 @@ const elements = {
   // Client card
   clientStatusDot: document.getElementById('client-status-dot'),
   clientStatusText: document.getElementById('client-status-text'),
+  clientEstRam: document.getElementById('client-est-ram'),
+  clientEntityCount: document.getElementById('client-entity-count'),
+  clientPositionCount: document.getElementById('client-position-count'),
+  clientLiveworldCount: document.getElementById('client-liveworld-count'),
+  clientTrailCount: document.getElementById('client-trail-count'),
+  clientHighlightedCount: document.getElementById('client-highlighted-count'),
+  btnClearClient: document.getElementById('btn-clear-client'),
 
   // Scenario panel
   scenarioSelect: document.getElementById('scenario-select'),
@@ -252,6 +259,26 @@ async function clearDatabase() {
     return await response.json();
   } catch (error) {
     console.error('Error clearing database:', error);
+    return null;
+  }
+}
+
+async function fetchClientStats() {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-stats');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function clearClientData() {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-stats/clear', { method: 'POST' });
+    return await response.json();
+  } catch (error) {
+    console.error('Error clearing client data:', error);
     return null;
   }
 }
@@ -485,6 +512,27 @@ async function refreshAll() {
     setText(elements.emulatorMemory, '-');
   }
 
+  // Poll client stats (from Vite dev server plugin)
+  const clientRunning = data.services.find(s => s.name === 'client')?.status === 'running';
+  if (clientRunning) {
+    const clientStats = await fetchClientStats();
+    if (clientStats && clientStats.estimatedTotalMB) {
+      setText(elements.clientEstRam, clientStats.estimatedTotalMB + ' MB');
+      setText(elements.clientEntityCount, formatNumber(clientStats.entityReportCount));
+      setText(elements.clientPositionCount, formatNumber(clientStats.positionReportCount));
+      setText(elements.clientLiveworldCount, formatNumber(clientStats.liveWorldEntityCount));
+      setText(elements.clientTrailCount, formatNumber(clientStats.trailCount));
+      setText(elements.clientHighlightedCount, formatNumber(clientStats.highlightedCount));
+    }
+  } else {
+    setText(elements.clientEstRam, '-');
+    setText(elements.clientEntityCount, '-');
+    setText(elements.clientPositionCount, '-');
+    setText(elements.clientLiveworldCount, '-');
+    setText(elements.clientTrailCount, '-');
+    setText(elements.clientHighlightedCount, '-');
+  }
+
   // Fetch logs for active tab (incremental)
   await refreshLogs();
 }
@@ -519,6 +567,16 @@ elements.btnClearDb.addEventListener('click', async () => {
   await clearDatabase();
   elements.btnClearDb.disabled = false;
   elements.btnClearDb.textContent = 'Clear DB';
+  refreshAll();
+});
+
+// Clear client data button
+elements.btnClearClient.addEventListener('click', async () => {
+  elements.btnClearClient.disabled = true;
+  elements.btnClearClient.textContent = 'Clearing...';
+  await clearClientData();
+  elements.btnClearClient.disabled = false;
+  elements.btnClearClient.textContent = 'Clear Data';
   refreshAll();
 });
 

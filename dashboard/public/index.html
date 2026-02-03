@@ -129,8 +129,29 @@
       </div>
       <div class="card-body">
         <div class="stat-grid">
-          <div class="stat stat-full">
-            <span class="stat-label">React + Vite visualization client</span>
+          <div class="stat">
+            <span class="stat-label">Est. RAM</span>
+            <span class="stat-value" id="client-est-ram">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Entity Reports</span>
+            <span class="stat-value" id="client-entity-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Position Reports</span>
+            <span class="stat-value" id="client-position-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Live World</span>
+            <span class="stat-value" id="client-liveworld-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Trails</span>
+            <span class="stat-value" id="client-trail-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Highlighted</span>
+            <span class="stat-value" id="client-highlighted-count">-</span>
           </div>
         </div>
       </div>
@@ -138,6 +159,7 @@
         <div class="footer-actions">
           <button class="btn btn-sm btn-start" data-action="start" data-service="client">Start</button>
           <button class="btn btn-sm btn-stop" data-action="stop" data-service="client">Stop</button>
+          <button class="btn btn-sm btn-danger" id="btn-clear-client">Clear Data</button>
         </div>
         <div class="footer-links">
           <a href="http://localhost:3000" target="_blank" class="btn btn-sm btn-link">Open UI</a>

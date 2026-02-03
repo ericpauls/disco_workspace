@@ -80,6 +80,7 @@ flowchart LR
     dash -.->|manages| server
     dash -.->|manages| emulator
     dash -.->|manages| client
+    dash -->|polls stats,<br/>clear data| client
 
     classDef person fill:#08427B,stroke:#052E56,color:#fff,stroke-width:2px
     classDef container fill:#438DD5,stroke:#2E6295,color:#fff,stroke-width:2px
@@ -168,28 +169,37 @@ flowchart LR
         subgraph data["Data Layer"]
             polling["Polling Hook"]
             api_svc["API Service"]
+            mem_stats["Memory Stats"]
+        end
+
+        subgraph vite_plugin["Vite Dev Server Plugin"]
+            stats_api["/api/client-stats"]
         end
 
         shell --> tabs
         tabs --> views
         polling --> api_svc
+        mem_stats -->|POST| stats_api
     end
 
     js_client["<b>JS API Client</b><br/><i>OpenAPI</i>"]
     server["<b>Server</b><br/><i>:8765</i>"]
+    dashboard["<b>Dashboard</b><br/><i>:8080</i>"]
 
     api_svc --> js_client
     js_client --> server
+    dashboard -->|GET stats,<br/>POST clear| stats_api
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
     classDef cbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
     classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-    class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc comp
+    class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc,mem_stats comp
+    class stats_api comp
     class client cbox
-    class js_client,server ext
-    class tabs,views,data inner
+    class js_client,server,dashboard ext
+    class tabs,views,data,vite_plugin inner
 ```
 
 ## Level 3: Component Diagram - Data Emulator

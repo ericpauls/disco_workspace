@@ -38,6 +38,7 @@ flowchart LR
     dash -.->|manages<br/>processes| emu
     dash -.->|manages<br/>processes| srv
     dash -.->|manages<br/>processes| ui
+    dash -->|polls stats,<br/>clear data| ui
 
     classDef emuStyle fill:#fff3e0,stroke:#e65100
     classDef srvStyle fill:#e8f5e9,stroke:#2e7d32
@@ -57,6 +58,7 @@ flowchart LR
 1. **Emulator → Server**: Entity reports and position reports are POSTed via HTTP (realistic path, same as real endpoints)
 2. **Emulator → Server (Truth Sync)**: Live world truth data is pushed via batch sync endpoint (development shortcut)
 3. **Server → Client**: Client polls REST endpoints for live world, entity reports, and position reports
+4. **Dashboard → Client**: Dashboard polls client memory stats (estimated RAM, object counts) via Vite dev server plugin and can request data clears
 
 ### Future Implementation (Dashed Lines)
 
@@ -66,10 +68,10 @@ flowchart LR
 
 | Component | Responsibility | Port |
 |-----------|---------------|------|
-| **Orchestration Dashboard** | Process management, scenario selection, service monitoring | 8080 |
+| **Orchestration Dashboard** | Process management, scenario selection, service monitoring, client stats display | 8080 |
 | **Surrogate Server** | API serving, data stores (entities, positions, live world) | 8765 |
 | **Data Emulator** | Scenario simulation, endpoint generation, report submission | 8766 |
-| **Client UI** | Visualization, user interaction | 3000 |
+| **Client UI** | Visualization, user interaction, memory stats estimation, data clear | 3000 |
 
 ## Communication Patterns
 
@@ -103,5 +105,17 @@ sequenceDiagram
         S-->>C: Entity reports
         C->>S: GET /apidocs/positionReports
         S-->>C: Position reports
+        C->>C: POST /api/client-stats/update (to Vite plugin)
+    end
+
+    loop Every 3s (Dashboard Polling)
+        D->>C: GET /api/client-stats
+        C-->>D: Memory stats (est. RAM, object counts)
+    end
+
+    opt Dashboard Clear Request
+        D->>C: POST /api/client-stats/clear
+        C->>C: Poll /api/client-stats/clear-requested
+        C->>C: clearAllClientData()
     end
 ```
