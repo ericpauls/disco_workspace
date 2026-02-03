@@ -49,12 +49,21 @@
             <span class="stat-label">Uptime</span>
             <span class="stat-value" id="server-uptime">-</span>
           </div>
+          <div class="stat">
+            <span class="stat-label">Memory (RSS)</span>
+            <span class="stat-value" id="server-memory">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">DB Size</span>
+            <span class="stat-value" id="server-db-size">-</span>
+          </div>
         </div>
       </div>
       <div class="card-footer">
         <div class="footer-actions">
           <button class="btn btn-sm btn-start" data-action="start" data-service="server">Start</button>
           <button class="btn btn-sm btn-stop" data-action="stop" data-service="server">Stop</button>
+          <button class="btn btn-sm btn-danger" id="btn-clear-db">Clear DB</button>
         </div>
         <div class="footer-links">
           <a href="http://localhost:8765/dashboard" target="_blank" class="btn btn-sm btn-link">Dashboard</a>
@@ -89,6 +98,10 @@
           <div class="stat">
             <span class="stat-label">Tick</span>
             <span class="stat-value" id="emulator-tick">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Memory (RSS)</span>
+            <span class="stat-value" id="emulator-memory">-</span>
           </div>
         </div>
       </div>

@@ -653,7 +653,7 @@ GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUI
 GET    /apidocs/entities/getPositions                     - Query positions
 ```
 
-### 10.2 positionReports API (7 implemented, 4 planned)
+### 10.2 positionReports API (8 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
@@ -663,13 +663,13 @@ GET    /apidocs/positionReports/getLatest                 - Get latest
 GET    /apidocs/positionReports/getLatestPerEndpoint      - Get latest per endpoint
 GET    /apidocs/positionReports/getUuids                  - List UUIDs
 GET    /apidocs/positionReports/{uuid}                    - Get by UUID
+POST   /apidocs/positionReports/batch                     - Batch add Position Reports
 DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
 ```
 
 **[PLANNED]:**
 ```
 PUT    /apidocs/positionReports                           - Update Position Report
-POST   /apidocs/positionReports/batchInsert               - Batch add Position Reports
 POST   /apidocs/positionReports/getBatchBySource          - Get batch by source UUIDs
 GET    /apidocs/positionReports/getPositions              - Query positions
 ```
@@ -715,7 +715,17 @@ GET    /apidocs/liveWorldModel/{uuid}                     - Get by origin UUID
 DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
 ```
 
-### 10.6 Data Emulator Control API (port 8766)
+### 10.6 Server Management API (port 8765)
+
+```
+GET    /apidocs/health                                    - Health check (status, counts, uptime)
+GET    /apidocs/server/status                             - Server status (uptime, store counts, capacity)
+GET    /apidocs/server/memory                             - Memory usage (RSS, heap, DB size, 2GB limit %)
+POST   /apidocs/server/clearStores                        - Clear all database tables
+GET    /apidocs/metrics                                   - Metrics snapshot (rates, counts, history)
+```
+
+### 10.8 Data Emulator Control API (port 8766)
 
 > **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/apidocs/` prefix). The emulator is a separate service that POSTs reports to the server.
 
@@ -723,6 +733,7 @@ DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
 GET    /api/health                                        - Emulator health check
 GET    /api/status                                        - Simulation status (running, entities, tick, etc.)
 GET    /api/scenarios                                     - List available scenarios with descriptions
+GET    /api/memory                                        - Memory usage (RSS, heap)
 POST   /api/simulation/start                              - Start simulation with scenario {scenario: key}
 POST   /api/simulation/stop                               - Stop and destroy simulation
 POST   /api/simulation/pause                              - Pause simulation tick loop
@@ -731,7 +742,7 @@ GET    /api/config                                        - Get current config (
 POST   /api/config/targetServer                           - Set target server URL
 ```
 
-### 10.7 Endpoint Management (port 8766)
+### 10.9 Endpoint Management (port 8766)
 
 ```
 GET    /api/endpoints                                     - Get all endpoints with state

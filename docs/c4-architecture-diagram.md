@@ -114,7 +114,7 @@ flowchart LR
             health["Health"]
         end
 
-        subgraph stores["Data Stores"]
+        subgraph stores["SQLite Database"]
             e_db[("E")]
             p_db[("P")]
             lw_db[("LW")]
@@ -262,7 +262,7 @@ flowchart TB
         subgraph node["Node.js Processes"]
             direction TB
             dash_srv["<b>Dashboard Server</b><br/><i>:8080 Process Mgmt</i>"]
-            express["<b>Surrogate Server</b><br/><i>:8765 API + Stores</i>"]
+            express["<b>Surrogate Server</b><br/><i>:8765 API + SQLite</i>"]
             emu_srv["<b>Data Emulator</b><br/><i>:8766 Simulation</i>"]
             vite["<b>Vite Dev Server</b><br/><i>:3000 HMR</i>"]
         end
@@ -314,6 +314,6 @@ flowchart TB
 
 4. **API Compatibility**: The surrogate server implements the same REST API as production DiSCO, enabling seamless transition to real infrastructure
 
-5. **In-Memory Storage**: Development uses in-memory stores instead of a database for simplicity and fast iteration
+5. **SQLite Storage**: The surrogate server uses SQLite (in-memory via better-sqlite3) with R-tree spatial indexing, FIFO eviction at 100K records, and a 2 GB database size limit with tiered warnings
 
 6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a scenario via the dashboard before data flows

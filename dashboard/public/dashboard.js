@@ -29,6 +29,9 @@ const elements = {
   serverEntityCount: document.getElementById('server-entity-count'),
   serverPositionCount: document.getElementById('server-position-count'),
   serverUptime: document.getElementById('server-uptime'),
+  serverMemory: document.getElementById('server-memory'),
+  serverDbSize: document.getElementById('server-db-size'),
+  btnClearDb: document.getElementById('btn-clear-db'),
 
   // Emulator card
   emulatorStatusDot: document.getElementById('emulator-status-dot'),
@@ -37,6 +40,7 @@ const elements = {
   emulatorEntityCount: document.getElementById('emulator-entity-count'),
   emulatorEndpointCount: document.getElementById('emulator-endpoint-count'),
   emulatorTick: document.getElementById('emulator-tick'),
+  emulatorMemory: document.getElementById('emulator-memory'),
 
   // Client card
   clientStatusDot: document.getElementById('client-status-dot'),
@@ -74,6 +78,14 @@ function formatUptime(ms) {
 function formatNumber(num) {
   if (num === null || num === undefined) return '-';
   return num.toLocaleString();
+}
+
+function formatBytes(bytes) {
+  if (bytes === null || bytes === undefined) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 }
 
 // Only update DOM element text if the value actually changed
@@ -210,6 +222,36 @@ async function fetchEmulatorSimStatus() {
     if (!response.ok) return null;
     return await response.json();
   } catch {
+    return null;
+  }
+}
+
+async function fetchServerMemory() {
+  try {
+    const response = await fetch('http://localhost:8765/apidocs/server/memory');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchEmulatorMemory() {
+  try {
+    const response = await fetch('http://localhost:8766/api/memory');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function clearDatabase() {
+  try {
+    const response = await fetch('http://localhost:8765/apidocs/server/clearStores', { method: 'POST' });
+    return await response.json();
+  } catch (error) {
+    console.error('Error clearing database:', error);
     return null;
   }
 }
@@ -407,6 +449,42 @@ async function refreshAll() {
   const emulatorStatus = emulatorState ? emulatorState.status : 'stopped';
   await updateScenarioPanel(emulatorStatus);
 
+  // Poll memory endpoints for running services
+  const serverRunning = data.services.find(s => s.name === 'server')?.status === 'running';
+  const emulatorRunning = data.services.find(s => s.name === 'emulator')?.status === 'running';
+
+  if (serverRunning) {
+    const memData = await fetchServerMemory();
+    if (memData) {
+      setText(elements.serverMemory, formatBytes(memData.rss));
+      const dbText = `${formatBytes(memData.dbSizeBytes)} / ${formatBytes(memData.dbSizeLimitBytes)}`;
+      setText(elements.serverDbSize, dbText);
+      // Color the DB size based on usage percentage
+      if (elements.serverDbSize) {
+        if (memData.dbSizePct >= 0.90) {
+          elements.serverDbSize.style.color = 'var(--color-error)';
+        } else if (memData.dbSizePct >= 0.75) {
+          elements.serverDbSize.style.color = 'var(--color-warning)';
+        } else {
+          elements.serverDbSize.style.color = '';
+        }
+      }
+    }
+  } else {
+    setText(elements.serverMemory, '-');
+    setText(elements.serverDbSize, '-');
+    if (elements.serverDbSize) elements.serverDbSize.style.color = '';
+  }
+
+  if (emulatorRunning) {
+    const memData = await fetchEmulatorMemory();
+    if (memData) {
+      setText(elements.emulatorMemory, formatBytes(memData.rss));
+    }
+  } else {
+    setText(elements.emulatorMemory, '-');
+  }
+
   // Fetch logs for active tab (incremental)
   await refreshLogs();
 }
@@ -431,6 +509,16 @@ elements.btnStopAll.addEventListener('click', async () => {
   await stopAll();
   elements.btnStopAll.disabled = false;
   elements.btnStopAll.textContent = 'Stop All';
+  refreshAll();
+});
+
+// Clear database button
+elements.btnClearDb.addEventListener('click', async () => {
+  elements.btnClearDb.disabled = true;
+  elements.btnClearDb.textContent = 'Clearing...';
+  await clearDatabase();
+  elements.btnClearDb.disabled = false;
+  elements.btnClearDb.textContent = 'Clear DB';
   refreshAll();
 });
 
