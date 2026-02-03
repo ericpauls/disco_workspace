@@ -548,6 +548,81 @@ body {
   border-radius: 3px;
 }
 
+/* Config Section (inside service cards) */
+.config-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.config-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.config-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.config-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  min-width: 0;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.config-input::placeholder {
+  color: var(--text-muted);
+}
+
+.config-input-half {
+  flex: 2;
+}
+
+.config-input-port {
+  flex: 1;
+  max-width: 60px;
+  -moz-appearance: textfield;
+}
+
+.config-input-port::-webkit-outer-spin-button,
+.config-input-port::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.config-separator {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.config-status {
+  font-size: 9px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+  min-height: 12px;
+}
+
+.config-status.success { color: var(--color-success); }
+.config-status.error { color: var(--color-error); }
+
 /* Responsive - collapse below 600px */
 @media (max-width: 600px) {
   .services-grid {

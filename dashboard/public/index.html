@@ -104,6 +104,15 @@
             <span class="stat-value" id="emulator-memory">-</span>
           </div>
         </div>
+        <div class="config-section">
+          <div class="config-label">Target Server</div>
+          <div class="config-input-row">
+            <input type="text" id="emulator-target-url" class="config-input"
+                   placeholder="http://localhost:8765" value="http://localhost:8765">
+            <button class="btn btn-sm btn-accent" id="btn-set-emulator-target">Set</button>
+          </div>
+          <span class="config-status" id="emulator-target-status"></span>
+        </div>
       </div>
       <div class="card-footer">
         <div class="footer-actions">
@@ -153,6 +162,18 @@
             <span class="stat-label">Highlighted</span>
             <span class="stat-value" id="client-highlighted-count">-</span>
           </div>
+        </div>
+        <div class="config-section">
+          <div class="config-label">Server Target</div>
+          <div class="config-input-row">
+            <input type="text" id="client-server-ip" class="config-input config-input-half"
+                   placeholder="127.0.0.1" value="127.0.0.1">
+            <span class="config-separator">:</span>
+            <input type="number" id="client-server-port" class="config-input config-input-port"
+                   placeholder="8765" value="8765" min="1" max="65535">
+            <button class="btn btn-sm btn-accent" id="btn-set-client-target">Set</button>
+          </div>
+          <span class="config-status" id="client-target-status"></span>
         </div>
       </div>
       <div class="card-footer">

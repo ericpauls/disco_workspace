@@ -38,7 +38,7 @@ flowchart LR
     dash -.->|manages<br/>processes| emu
     dash -.->|manages<br/>processes| srv
     dash -.->|manages<br/>processes| ui
-    dash -->|polls stats,<br/>clear data| ui
+    dash -->|polls stats,<br/>clear data,<br/>config override| ui
 
     classDef emuStyle fill:#fff3e0,stroke:#e65100
     classDef srvStyle fill:#e8f5e9,stroke:#2e7d32
@@ -58,7 +58,7 @@ flowchart LR
 1. **Emulator → Server**: Entity reports and position reports are POSTed via HTTP (realistic path, same as real endpoints)
 2. **Emulator → Server (Truth Sync)**: Live world truth data is pushed via batch sync endpoint (development shortcut)
 3. **Server → Client**: Client polls REST endpoints for live world, entity reports, and position reports
-4. **Dashboard → Client**: Dashboard polls client memory stats (estimated RAM, object counts) via Vite dev server plugin and can request data clears
+4. **Dashboard → Client**: Dashboard polls client memory stats (estimated RAM, object counts) via Vite dev server plugin, can request data clears, and can override the client's server target (IP/port)
 
 ### Future Implementation (Dashed Lines)
 
@@ -117,5 +117,11 @@ sequenceDiagram
         D->>C: POST /api/client-stats/clear
         C->>C: Poll /api/client-stats/clear-requested
         C->>C: clearAllClientData()
+    end
+
+    opt Dashboard Config Override
+        D->>C: POST /api/client-config (ip, port)
+        C->>C: Poll /api/client-config/pending
+        C->>C: setServerConfig(ip, port)
     end
 ```

@@ -41,6 +41,9 @@ const elements = {
   emulatorEndpointCount: document.getElementById('emulator-endpoint-count'),
   emulatorTick: document.getElementById('emulator-tick'),
   emulatorMemory: document.getElementById('emulator-memory'),
+  emulatorTargetUrl: document.getElementById('emulator-target-url'),
+  emulatorTargetStatus: document.getElementById('emulator-target-status'),
+  btnSetEmulatorTarget: document.getElementById('btn-set-emulator-target'),
 
   // Client card
   clientStatusDot: document.getElementById('client-status-dot'),
@@ -52,6 +55,10 @@ const elements = {
   clientTrailCount: document.getElementById('client-trail-count'),
   clientHighlightedCount: document.getElementById('client-highlighted-count'),
   btnClearClient: document.getElementById('btn-clear-client'),
+  clientServerIp: document.getElementById('client-server-ip'),
+  clientServerPort: document.getElementById('client-server-port'),
+  clientTargetStatus: document.getElementById('client-target-status'),
+  btnSetClientTarget: document.getElementById('btn-set-client-target'),
 
   // Scenario panel
   scenarioSelect: document.getElementById('scenario-select'),
@@ -284,6 +291,62 @@ async function clearClientData() {
 }
 
 // ============================================================
+// EMULATOR CONFIG API
+// ============================================================
+
+async function fetchEmulatorConfig() {
+  try {
+    const response = await fetch('http://localhost:8766/api/config');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function setEmulatorTargetServer(targetServerUrl) {
+  try {
+    const response = await fetch('http://localhost:8766/api/config/targetServer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetServerUrl })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error setting emulator target:', error);
+    return null;
+  }
+}
+
+// ============================================================
+// CLIENT CONFIG API
+// ============================================================
+
+async function fetchClientConfig() {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-config');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function setClientServerConfig(ip, port) {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, port: parseInt(port) })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error setting client config:', error);
+    return null;
+  }
+}
+
+// ============================================================
 // UI UPDATE FUNCTIONS
 // ============================================================
 
@@ -508,6 +571,13 @@ async function refreshAll() {
     if (memData) {
       setText(elements.emulatorMemory, formatBytes(memData.rss));
     }
+    // Sync emulator target URL input (skip if user is editing)
+    const emConfig = await fetchEmulatorConfig();
+    if (emConfig && emConfig.targetServerUrl) {
+      if (document.activeElement !== elements.emulatorTargetUrl) {
+        elements.emulatorTargetUrl.value = emConfig.targetServerUrl;
+      }
+    }
   } else {
     setText(elements.emulatorMemory, '-');
   }
@@ -523,6 +593,16 @@ async function refreshAll() {
       setText(elements.clientLiveworldCount, formatNumber(clientStats.liveWorldEntityCount));
       setText(elements.clientTrailCount, formatNumber(clientStats.trailCount));
       setText(elements.clientHighlightedCount, formatNumber(clientStats.highlightedCount));
+    }
+    // Sync client server target inputs (skip if user is editing)
+    const clientConfig = await fetchClientConfig();
+    if (clientConfig) {
+      if (document.activeElement !== elements.clientServerIp) {
+        elements.clientServerIp.value = clientConfig.ip || '127.0.0.1';
+      }
+      if (document.activeElement !== elements.clientServerPort) {
+        elements.clientServerPort.value = clientConfig.port || 8765;
+      }
     }
   } else {
     setText(elements.clientEstRam, '-');
@@ -650,6 +730,68 @@ document.querySelectorAll('.log-tab').forEach(tab => {
 elements.logOutput.addEventListener('scroll', () => {
   const { scrollTop, scrollHeight, clientHeight } = elements.logOutput;
   autoScroll = (scrollHeight - scrollTop - clientHeight) < 30;
+});
+
+// Emulator target server config
+function showConfigStatus(el, message, isSuccess) {
+  setText(el, message);
+  setClass(el, `config-status ${isSuccess ? 'success' : 'error'}`);
+  setTimeout(() => {
+    setText(el, '');
+    setClass(el, 'config-status');
+  }, 3000);
+}
+
+elements.btnSetEmulatorTarget.addEventListener('click', async () => {
+  const url = elements.emulatorTargetUrl.value.trim();
+  if (!url) return;
+
+  elements.btnSetEmulatorTarget.disabled = true;
+  elements.btnSetEmulatorTarget.textContent = '...';
+
+  const result = await setEmulatorTargetServer(url);
+
+  elements.btnSetEmulatorTarget.disabled = false;
+  elements.btnSetEmulatorTarget.textContent = 'Set';
+
+  if (result && result.success) {
+    showConfigStatus(elements.emulatorTargetStatus, 'Updated', true);
+  } else {
+    showConfigStatus(elements.emulatorTargetStatus, result?.error || 'Failed', false);
+  }
+});
+
+elements.emulatorTargetUrl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') elements.btnSetEmulatorTarget.click();
+});
+
+// Client server target config
+elements.btnSetClientTarget.addEventListener('click', async () => {
+  const ip = elements.clientServerIp.value.trim();
+  const port = elements.clientServerPort.value.trim();
+  if (!ip || !port) return;
+
+  elements.btnSetClientTarget.disabled = true;
+  elements.btnSetClientTarget.textContent = '...';
+
+  const result = await setClientServerConfig(ip, port);
+
+  elements.btnSetClientTarget.disabled = false;
+  elements.btnSetClientTarget.textContent = 'Set';
+
+  if (result && result.ok) {
+    showConfigStatus(elements.clientTargetStatus, 'Updated (applies within 2s)', true);
+  } else {
+    showConfigStatus(elements.clientTargetStatus, result?.error || 'Failed', false);
+  }
+});
+
+elements.clientServerIp.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') elements.btnSetClientTarget.click();
+});
+
+elements.clientServerPort.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') elements.btnSetClientTarget.click();
 });
 
 // ============================================================
