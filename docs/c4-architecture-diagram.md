@@ -45,7 +45,7 @@ flowchart LR
 
 ## Level 2: Container Diagram
 
-Shows the high-level technology choices and how the containers communicate.
+Shows the four services and how they communicate.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '13px'}}}%%
@@ -54,50 +54,56 @@ flowchart LR
 
     subgraph disco["&nbsp;&nbsp;DiSCO Development Environment&nbsp;&nbsp;"]
         direction TB
+        dash["<b>Dashboard</b><br/><i>Express.js</i><br/>:8080"]
         client["<b>Client UI</b><br/><i>React 19, Vite</i><br/>:3000"]
-        server["<b>Surrogate Server</b><br/><i>Express.js</i><br/>:8765"]
-        sim["<b>Simulation Engine</b><br/><i>TypeScript</i>"]
 
-        subgraph stores["Data Stores"]
+        subgraph server["&nbsp;&nbsp;Surrogate Server :8765&nbsp;&nbsp;"]
             direction LR
             entity_db[("Entities")]
             pos_db[("Positions")]
             lw_db[("Live World")]
         end
+
+        subgraph emulator["&nbsp;&nbsp;Data Emulator :8766&nbsp;&nbsp;"]
+            sim["Simulation<br/>Engine"]
+            scenarios["Scenarios"]
+        end
     end
 
     js_client["<b>JS API Client</b><br/><i>OpenAPI</i>"]
 
+    dev -->|Browser| dash
     dev -->|Browser| client
     client --> js_client
-    js_client -->|REST| server
-
-    sim --> stores
-    server --> stores
+    js_client -->|REST GET| server
+    emulator -->|POST reports| server
+    dash -.->|manages| server
+    dash -.->|manages| emulator
+    dash -.->|manages| client
 
     classDef person fill:#08427B,stroke:#052E56,color:#fff,stroke-width:2px
     classDef container fill:#438DD5,stroke:#2E6295,color:#fff,stroke-width:2px
     classDef db fill:#438DD5,stroke:#2E6295,color:#fff,stroke-width:2px
     classDef ext fill:#666,stroke:#444,color:#fff,stroke-width:2px
     classDef boundary fill:#E8F4FD,stroke:#1168BD,stroke-width:2px
-    classDef storebox fill:#fff,stroke:#438DD5,stroke-width:1px,stroke-dasharray: 5 5
+    classDef inner fill:#fff,stroke:#438DD5,stroke-width:1px,stroke-dasharray: 5 5
 
     class dev person
-    class client,server,sim container
+    class dash,client,sim,scenarios container
     class entity_db,pos_db,lw_db db
     class js_client ext
     class disco boundary
-    class stores storebox
+    class server,emulator inner
 ```
 
 ## Level 3: Component Diagram - Surrogate Server
 
-Shows the internal components of the Surrogate DiSCO Server.
+Shows the internal components of the Surrogate DiSCO Server (port 8765).
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
 flowchart LR
-    subgraph server["Surrogate Server"]
+    subgraph server["Surrogate Server :8765"]
         direction TB
         express["<b>Express App</b><br/><i>HTTP routing</i>"]
 
@@ -105,7 +111,7 @@ flowchart LR
             entities["Entities"]
             positions["Positions"]
             liveworld["LiveWorld"]
-            simctl["Control"]
+            health["Health"]
         end
 
         subgraph stores["Data Stores"]
@@ -118,27 +124,21 @@ flowchart LR
         apis --> stores
     end
 
-    subgraph sim["Simulation Engine"]
-        engine["<b>Engine</b><br/><i>Main loop</i>"]
-        mgr["EntityMgr"]
-        measure["Measurement"]
+    emulator["<b>Data Emulator</b><br/><i>:8766</i>"]
+    client["<b>Client UI</b><br/><i>:3000</i>"]
 
-        engine --> mgr
-        engine --> measure
-    end
-
-    engine --> stores
-    simctl -.->|controls| engine
+    emulator -->|POST reports| apis
+    client -->|GET data| apis
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
     classDef sbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
-    classDef simbox fill:#F0F0F0,stroke:#888,stroke-width:2px
+    classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-    class express,entities,positions,liveworld,simctl,engine,mgr,measure comp
+    class express,entities,positions,liveworld,health comp
     class e_db,p_db,lw_db comp
     class server sbox
-    class sim simbox
+    class emulator,client ext
     class apis,stores inner
 ```
 
@@ -192,18 +192,19 @@ flowchart LR
     class tabs,views,data inner
 ```
 
-## Level 3: Component Diagram - Simulation Engine
+## Level 3: Component Diagram - Data Emulator
 
-Shows the internal components of the Simulation Engine in detail.
+Shows the internal components of the Data Emulator (port 8766).
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#666', 'fontSize': '12px'}}}%%
 flowchart LR
-    subgraph sim["Simulation Engine"]
+    subgraph emu["Data Emulator :8766"]
         direction TB
-        loop["<b>Sim Loop</b><br/><i>100ms tick</i>"]
+        emu_api["<b>Emulator API</b><br/><i>Express.js</i>"]
 
-        subgraph entities["Entity Management"]
+        subgraph sim["Simulation Engine"]
+            loop["Sim Loop"]
             mgr["Entity Manager"]
             truth["Truth Entities"]
             endpoints["Endpoints"]
@@ -215,37 +216,32 @@ flowchart LR
             sig_noise["Signal Noise"]
         end
 
-        subgraph output["Output"]
-            reporter["Report Gen"]
+        subgraph scenarios_box["Scenarios"]
+            scenario_cfg["Scenario Config"]
         end
 
-        loop --> entities
+        emu_api -->|start/stop| sim
+        loop --> mgr
         loop --> measurement
-        measurement --> output
+        scenario_cfg --> mgr
     end
 
-    subgraph stores["Data Stores"]
-        e_db[("Entities")]
-        p_db[("Positions")]
-    end
+    server["<b>Surrogate Server</b><br/><i>:8765</i>"]
+    dashboard["<b>Dashboard</b><br/><i>:8080</i>"]
 
-    scenario["<b>Scenario Config</b>"]
-
-    scenario --> entities
-    reporter --> stores
-    endpoints --> stores
+    endpoints -->|POST reports| server
+    truth -->|POST sync| server
+    dashboard -.->|scenario control| emu_api
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
-    classDef sbox fill:#F0F0F0,stroke:#888,stroke-width:2px
+    classDef sbox fill:#FFF3E0,stroke:#E65100,stroke-width:2px
     classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
-    classDef db fill:#85BBF0,stroke:#5A9BD5,color:#000
 
-    class loop,mgr,truth,endpoints,visibility,geo_noise,sig_noise,reporter comp
-    class e_db,p_db db
-    class sim sbox
-    class scenario ext
-    class entities,measurement,output,stores inner
+    class emu_api,loop,mgr,truth,endpoints,visibility,geo_noise,sig_noise,scenario_cfg comp
+    class emu sbox
+    class server,dashboard ext
+    class sim,measurement,scenarios_box inner
 ```
 
 ## Deployment Diagram
@@ -259,14 +255,16 @@ flowchart TB
         direction LR
 
         subgraph browser["Browser"]
+            dash_ui["<b>Dashboard</b><br/><i>localhost:8080</i>"]
             client_ui["<b>Client UI</b><br/><i>localhost:3000</i>"]
         end
 
-        subgraph node["Node.js Runtime"]
+        subgraph node["Node.js Processes"]
             direction TB
+            dash_srv["<b>Dashboard Server</b><br/><i>:8080 Process Mgmt</i>"]
+            express["<b>Surrogate Server</b><br/><i>:8765 API + Stores</i>"]
+            emu_srv["<b>Data Emulator</b><br/><i>:8766 Simulation</i>"]
             vite["<b>Vite Dev Server</b><br/><i>:3000 HMR</i>"]
-            express["<b>Express Server</b><br/><i>:8765 API</i>"]
-            sim["<b>Simulation</b>"]
         end
 
         subgraph files["File System"]
@@ -275,10 +273,14 @@ flowchart TB
         end
     end
 
+    dash_ui -->|manages| dash_srv
     client_ui -->|loads| vite
     client_ui -->|REST| express
     vite --> js_client
-    express --> sim
+    dash_srv -.->|spawns| express
+    dash_srv -.->|spawns| emu_srv
+    dash_srv -.->|spawns| vite
+    emu_srv -->|POST| express
 
     classDef runtime fill:#85BBF0,stroke:#5A9BD5,color:#000
     classDef browser fill:#438DD5,stroke:#2E6295,color:#fff
@@ -286,8 +288,8 @@ flowchart TB
     classDef machine fill:#E8F4FD,stroke:#1168BD,stroke-width:2px
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-    class client_ui browser
-    class vite,express,sim runtime
+    class dash_ui,client_ui browser
+    class dash_srv,express,emu_srv,vite runtime
     class js_client,screenshots file
     class machine machine
     class browser,node,files inner
@@ -298,18 +300,20 @@ flowchart TB
 | Level | Diagram | Audience | Shows |
 |-------|---------|----------|-------|
 | **1 - Context** | System Context | Everyone | DiSCO dev environment in relation to real DiSCO and users |
-| **2 - Container** | Container | Developers | Major technology blocks and their interactions |
-| **3 - Component** | Component (x3) | Developers | Internal structure of Server, Client, and Simulation |
+| **2 - Container** | Container | Developers | Four services (Dashboard, Server, Emulator, Client) and their interactions |
+| **3 - Component** | Component (x3) | Developers | Internal structure of Server, Client, and Emulator |
 | **4 - Code** | (See ERD) | Developers | Data structures and relationships |
 
 ## Key Architectural Decisions
 
-1. **Separate Truth from Observations**: The simulation maintains "truth data" (actual entity positions) separate from "observations" (what endpoints report with noise)
+1. **Three-Service Architecture**: Dashboard (8080) orchestrates Surrogate Server (8765), Data Emulator (8766), and Client UI (3000) as independent processes
 
-2. **API Compatibility**: The surrogate server implements the same REST API as production DiSCO, enabling seamless transition to real infrastructure
+2. **Emulator is Server-Agnostic**: The emulator POSTs reports to a configurable target URL, working with the surrogate server locally or a real DiSCO server remotely
 
-3. **In-Memory Storage**: Development uses in-memory arrays instead of a database for simplicity and fast iteration
+3. **Separate Truth from Observations**: The simulation maintains "truth data" (actual entity positions) separate from "observations" (what endpoints report with noise)
 
-4. **Measurement Model Abstraction**: Visibility checks and noise models are isolated, making it easy to tune sensor characteristics
+4. **API Compatibility**: The surrogate server implements the same REST API as production DiSCO, enabling seamless transition to real infrastructure
 
-5. **Component Isolation**: Clear boundaries between UI, API layer, and simulation enable independent testing and development
+5. **In-Memory Storage**: Development uses in-memory stores instead of a database for simplicity and fast iteration
+
+6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a scenario via the dashboard before data flows

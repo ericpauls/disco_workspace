@@ -14,6 +14,10 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 2. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
 3. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
 4. **Pre-commit gate** - When user says "commit" or "push", FIRST check if completion-checklist has run this session. If not, invoke it before committing.
+5. **Browser screenshots** - Always resize Chrome to 900x600 before taking screenshots. Never use fullscreen.
+   ```bash
+   osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
+   ```
 
 ## Pre-Commit Gate (ENFORCED)
 

@@ -4,3 +4,6 @@
 [submodule "disco_live_world_client_ui"]
 	path = disco_live_world_client_ui
 	url = https://github.com/ericpauls/disco_live_world_client_ui.git
+[submodule "disco_surrogate_server"]
+	path = disco_surrogate_server
+	url = https://github.com/ericpauls/disco_surrogate_server.git

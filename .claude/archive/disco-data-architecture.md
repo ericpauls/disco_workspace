@@ -715,25 +715,30 @@ GET    /apidocs/liveWorldModel/{uuid}                     - Get by origin UUID
 DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
 ```
 
-### 10.6 Simulation Control & Monitoring (Implemented)
+### 10.6 Data Emulator Control API (port 8766)
+
+> **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/apidocs/` prefix). The emulator is a separate service that POSTs reports to the server.
 
 ```
-GET    /apidocs/health                                    - Health check
-GET    /apidocs/simulation/status                         - Get simulation status
-POST   /apidocs/simulation/pause                          - Pause simulation
-POST   /apidocs/simulation/resume                         - Resume simulation
-POST   /apidocs/simulation/clearReports                   - Clear all entity/position reports
-GET    /apidocs/metrics                                   - Get performance metrics
+GET    /api/health                                        - Emulator health check
+GET    /api/status                                        - Simulation status (running, entities, tick, etc.)
+GET    /api/scenarios                                     - List available scenarios with descriptions
+POST   /api/simulation/start                              - Start simulation with scenario {scenario: key}
+POST   /api/simulation/stop                               - Stop and destroy simulation
+POST   /api/simulation/pause                              - Pause simulation tick loop
+POST   /api/simulation/resume                             - Resume simulation tick loop
+GET    /api/config                                        - Get current config (target URL, scenario)
+POST   /api/config/targetServer                           - Set target server URL
 ```
 
-### 10.7 Endpoint Management (Implemented)
+### 10.7 Endpoint Management (port 8766)
 
 ```
-GET    /apidocs/endpoints                                 - Get all endpoints
-POST   /apidocs/endpoints/pause                           - Pause specific endpoint
-POST   /apidocs/endpoints/resume                          - Resume specific endpoint
-POST   /apidocs/endpoints/pauseAll                        - Pause all endpoints
-POST   /apidocs/endpoints/resumeAll                       - Resume all endpoints
+GET    /api/endpoints                                     - Get all endpoints with state
+POST   /api/endpoints/:uuid/pause                         - Pause specific endpoint
+POST   /api/endpoints/:uuid/resume                        - Resume specific endpoint
+POST   /api/endpoints/pauseAll                            - Pause all endpoints
+POST   /api/endpoints/resumeAll                           - Resume all endpoints
 ```
 
 ---
