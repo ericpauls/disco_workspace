@@ -631,14 +631,18 @@ The `group_uuid` enables critical data provenance:
 
 ## 10. API Endpoints Reference
 
-### 10.1 entities API (7 implemented, 5 planned)
+### 10.1 entities API (9 implemented, 4 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/entities                                  - Add new Entity Report
-POST   /apidocs/entities/batch                            - Batch add Entity Reports
-GET    /apidocs/entities/getByParams                      - Query by parameters
+POST   /apidocs/entities/batchInsert                      - Batch add (canonical, accepts bare array or {reports:[]})
+POST   /apidocs/entities/batch                            - Batch add (legacy alias)
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?max_count=                                       - Limit results (default 1000)
+GET    /apidocs/entities/getByParams                      - Query by parameters
 GET    /apidocs/entities/getUuids                         - List UUIDs
 GET    /apidocs/entities/{entity_msg_uuid}                - Get by UUID
 DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
@@ -647,23 +651,26 @@ DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
 **[PLANNED]:**
 ```
 PUT    /apidocs/entities                                  - Update Entity Report
-POST   /apidocs/entities/batchInsert                      - Alternative batch endpoint
 POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
 GET    /apidocs/entities/getPositions                     - Query positions
 ```
 
-### 10.2 positionReports API (8 implemented, 3 planned)
+### 10.2 positionReports API (9 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/positionReports                           - Add new Position Report
-GET    /apidocs/positionReports/getByParams               - Query by parameters
+POST   /apidocs/positionReports/batchInsert               - Batch add (canonical, accepts bare array or {reports:[]})
+POST   /apidocs/positionReports/batch                     - Batch add (legacy alias)
 GET    /apidocs/positionReports/getLatest                 - Get latest
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?max_count=                                       - Limit results (default 1000)
+GET    /apidocs/positionReports/getByParams               - Query by parameters
 GET    /apidocs/positionReports/getLatestPerEndpoint      - Get latest per endpoint
 GET    /apidocs/positionReports/getUuids                  - List UUIDs
 GET    /apidocs/positionReports/{uuid}                    - Get by UUID
-POST   /apidocs/positionReports/batch                     - Batch add Position Reports
 DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
 ```
 
