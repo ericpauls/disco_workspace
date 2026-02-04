@@ -175,6 +175,7 @@ flowchart LR
         subgraph vite_plugin["Vite Dev Server Plugin"]
             stats_api["/api/client-stats"]
             config_api["/api/client-config"]
+            polling_api["/api/client-polling-mode"]
         end
 
         shell --> tabs
@@ -191,6 +192,7 @@ flowchart LR
     js_client --> server
     dashboard -->|GET stats,<br/>POST clear/config| stats_api
     dashboard -->|GET/POST config| config_api
+    dashboard -->|GET/POST mode| polling_api
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
     classDef cbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
@@ -198,7 +200,7 @@ flowchart LR
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
     class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc,mem_stats comp
-    class stats_api,config_api comp
+    class stats_api,config_api,polling_api comp
     class client cbox
     class js_client,server,dashboard ext
     class tabs,views,data,vite_plugin inner

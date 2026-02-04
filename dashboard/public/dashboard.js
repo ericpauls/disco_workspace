@@ -59,6 +59,11 @@ const elements = {
   clientServerPort: document.getElementById('client-server-port'),
   clientTargetStatus: document.getElementById('client-target-status'),
   btnSetClientTarget: document.getElementById('btn-set-client-target'),
+  clientPollingMode: document.getElementById('client-polling-mode'),
+  btnSetPollingMode: document.getElementById('btn-set-polling-mode'),
+  pollingModeStatus: document.getElementById('polling-mode-status'),
+  gapStatsRow: document.getElementById('gap-stats-row'),
+  clientGapStats: document.getElementById('client-gap-stats'),
 
   // Scenario panel
   scenarioSelect: document.getElementById('scenario-select'),
@@ -347,6 +352,34 @@ async function setClientServerConfig(ip, port) {
 }
 
 // ============================================================
+// CLIENT POLLING MODE API
+// ============================================================
+
+async function fetchClientPollingMode() {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-polling-mode');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function setClientPollingMode(mode) {
+  try {
+    const response = await fetch('http://localhost:3000/api/client-polling-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error setting polling mode:', error);
+    return null;
+  }
+}
+
+// ============================================================
 // UI UPDATE FUNCTIONS
 // ============================================================
 
@@ -604,6 +637,24 @@ async function refreshAll() {
         elements.clientServerPort.value = clientConfig.port || 8765;
       }
     }
+    // Sync polling mode dropdown and gap stats
+    const pollingModeData = await fetchClientPollingMode();
+    if (pollingModeData && pollingModeData.mode) {
+      if (document.activeElement !== elements.clientPollingMode) {
+        elements.clientPollingMode.value = pollingModeData.mode;
+      }
+    }
+    // Show gap stats from client stats push
+    const currentMode = clientStats?.pollingMode || pollingModeData?.mode || 'from-beginning';
+    if (currentMode === 'always-latest' && clientStats?.gapStats && clientStats.gapStats.gapCount > 0) {
+      elements.gapStatsRow.style.display = '';
+      const avgSec = (clientStats.gapStats.avgGapMs / 1000).toFixed(1);
+      const maxSec = (clientStats.gapStats.maxGapMs / 1000).toFixed(1);
+      setText(elements.clientGapStats, `${avgSec}s / ${maxSec}s`);
+    } else {
+      elements.gapStatsRow.style.display = 'none';
+      setText(elements.clientGapStats, '-');
+    }
   } else {
     setText(elements.clientEstRam, '-');
     setText(elements.clientEntityCount, '-');
@@ -792,6 +843,26 @@ elements.clientServerIp.addEventListener('keydown', (e) => {
 
 elements.clientServerPort.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') elements.btnSetClientTarget.click();
+});
+
+// Client polling mode
+elements.btnSetPollingMode.addEventListener('click', async () => {
+  const mode = elements.clientPollingMode.value;
+  if (!mode) return;
+
+  elements.btnSetPollingMode.disabled = true;
+  elements.btnSetPollingMode.textContent = '...';
+
+  const result = await setClientPollingMode(mode);
+
+  elements.btnSetPollingMode.disabled = false;
+  elements.btnSetPollingMode.textContent = 'Set';
+
+  if (result && result.ok) {
+    showConfigStatus(elements.pollingModeStatus, 'Updated (applies within 2s)', true);
+  } else {
+    showConfigStatus(elements.pollingModeStatus, result?.error || 'Failed', false);
+  }
 });
 
 // ============================================================
