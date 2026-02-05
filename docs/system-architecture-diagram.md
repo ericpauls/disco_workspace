@@ -91,7 +91,7 @@ sequenceDiagram
 
     loop Every 1s (Simulation Tick)
         E->>E: Update entity positions
-        E->>E: Run visibility & measurement
+        E->>E: Run measurement model
 
         E->>S: POST /apidocs/entities/batch
         E->>S: POST /apidocs/positionReports/batch
