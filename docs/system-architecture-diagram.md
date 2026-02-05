@@ -32,7 +32,7 @@ flowchart LR
 
     eps -->|POST entity<br/>reports| ent
     eps -->|POST position<br/>reports| pos
-    truth -.->|POST live<br/>world sync| lw
+    sim -->|POST/PUT<br/>live world| lw
     ent -.->|future:<br/>fusion| lw
     lw -->|REST GET| ui
     dash -.->|manages<br/>processes| emu
@@ -56,7 +56,7 @@ flowchart LR
 ### Current Implementation (Solid Lines)
 
 1. **Emulator → Server**: Entity reports and position reports are POSTed via HTTP (realistic path, same as real endpoints)
-2. **Emulator → Server (Truth Sync)**: Live world truth data is pushed via batch sync endpoint (development shortcut)
+2. **Emulator → Server (Truth Sync)**: Live world truth data is pushed via POST (new records) / PUT (updates) using server-assigned UUIDs
 3. **Server → Client**: Client polls REST endpoints for live world, entity reports, and position reports
 4. **Dashboard → Client**: Dashboard polls client memory stats (estimated RAM, object counts) via Vite dev server plugin, can request data clears, and can override the client's server target (IP/port)
 
@@ -95,7 +95,8 @@ sequenceDiagram
 
         E->>S: POST /apidocs/entities/batch
         E->>S: POST /apidocs/positionReports/batch
-        E->>S: POST /apidocs/liveWorldModel/sync
+        E->>S: POST /apidocs/liveWorldModel (new)
+        E->>S: PUT /apidocs/liveWorldModel (updates)
     end
 
     loop Every 2s (Client Polling)

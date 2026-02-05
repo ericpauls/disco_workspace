@@ -244,7 +244,7 @@ flowchart LR
     dashboard["<b>Dashboard</b><br/><i>:8080</i>"]
 
     endpoints -->|POST reports| server
-    truth -->|POST sync| server
+    truth -->|POST/PUT| server
     dashboard -.->|scenario control| emu_api
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000

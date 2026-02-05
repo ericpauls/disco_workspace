@@ -37,6 +37,8 @@ DiSCO (Distributed Spectrum Collaboration & Operations) collects electromagnetic
 2. **Direct Path**: Position Reports → Live World (for DiSCO endpoint self-locations) **✓ IMPLEMENTED**
 
 > **⚠️ IMPLEMENTATION STATUS**: The current emulator implements entity/position report storage and the Direct Path. The Fused Path (correlation, summarization, fusion tables) is documented but not yet implemented.
+>
+> **Live World Update Pattern**: The emulator uses `POST /liveWorldModel` for new entities (server assigns `liveworldmodel_uuid`) and `PUT /liveWorldModel` for updates (referencing the server-assigned UUID). This aligns with the official DiSCO API — no batch/sync endpoints are used. The emulator maintains an internal map of entity UUIDs to server-assigned live world UUIDs.
 
 ---
 
