@@ -35,15 +35,39 @@ Combine results to get all modified/added files.
 Follow the complete verification workflow:
 
 1. Check if servers are running (curl health endpoints), if not run `./start.sh`
+   - `./start.sh` launches the orchestration dashboard (port 8080) which starts all other services
+   - ALL FOUR services must be healthy before proceeding: dashboard (8080), surrogate server (8765), emulator (8766), client UI (3000)
+   - If any health check fails, do NOT proceed to screenshots — fix the issue first
 2. Ensure Chrome has tabs open for ALL THREE UIs:
    - Orchestration Dashboard: http://localhost:8080
    - Client UI: http://localhost:3000
    - Surrogate Server Dashboard: http://localhost:8765/dashboard
 3. Take screenshots of each UI using **non-interactive window-ID capture** (see below)
-4. Read and inspect the screenshots using the Read tool
+4. **Read and VALIDATE every screenshot** using the Read tool (see Screenshot Validation below)
 5. Verify the specific feature works
 
 **TypeScript compilation is NOT sufficient. Visual verification is MANDATORY.**
+
+#### Screenshot Validation (MUST follow — no exceptions)
+
+After capturing each screenshot, you MUST use the Read tool to view it, then validate:
+
+1. **The page loaded successfully** — no "connection refused", "can't be reached", blank pages, or error screens
+2. **The correct content is showing** — the actual dashboard/UI, not a Chrome error page or wrong tab
+3. **Key UI elements are present** — describe what you see to prove you examined it
+
+**FAILURE CRITERIA — any of these means the screenshot FAILS:**
+- "This site can't be reached" or ERR_CONNECTION_REFUSED → service is not running (FAIL)
+- Blank/white page → page didn't load (FAIL)
+- Wrong content (e.g., different site) → wrong tab captured (FAIL)
+- Missing key UI elements that should be there → rendering issue (FAIL)
+
+**If ANY screenshot fails validation, the overall status is FAIL.** Do not dismiss failures as "expected" or "acceptable" — if a service should be running and isn't, that's a problem to fix, not an observation to note.
+
+**For each screenshot, you must report:**
+- What URL was captured
+- What you see in the screenshot (specific UI elements, text, indicators)
+- PASS or FAIL with reason
 
 #### Screenshot Method (MUST use this — no interactive screenshots)
 
@@ -154,11 +178,18 @@ Provide a clear report with two sections:
 
 ## Testing Results
 
-**Screenshots examined**: [list files]
-**Features verified**: [specific checks performed]
-**Status**: PASS / FAIL
+**Per-screenshot validation** (REQUIRED — list each screenshot with what you saw):
 
-[If FAIL, describe what's broken]
+| Screenshot | File | What I See | Status |
+|-----------|------|------------|--------|
+| Orchestration Dashboard | `./screenshots/dashboard.png` | [Describe specific UI elements visible] | PASS/FAIL |
+| Client UI | `./screenshots/client_ui.png` | [Describe specific UI elements visible] | PASS/FAIL |
+| Server Dashboard | `./screenshots/server_dashboard.png` | [Describe specific UI elements visible] | PASS/FAIL |
+
+**Features verified**: [specific checks performed]
+**Overall Status**: PASS / FAIL (FAIL if ANY screenshot failed)
+
+[If FAIL, describe what's broken and what needs fixing]
 
 ---
 
