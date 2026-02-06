@@ -633,13 +633,12 @@ The `group_uuid` enables critical data provenance:
 
 ## 10. API Endpoints Reference
 
-### 10.1 entities API (9 implemented, 4 planned)
+### 10.1 entities API (8 implemented, 4 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/entities                                  - Add new Entity Report
-POST   /apidocs/entities/batchInsert                      - Batch add (canonical, accepts bare array or {reports:[]})
-POST   /apidocs/entities/batch                            - Batch add (legacy alias)
+POST   /apidocs/entities/batchInsert                      - Batch add (accepts bare array or {reports:[]})
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
          ?from_time=&to_time=                              - Filter by latest_timestamp range
          ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
@@ -658,19 +657,17 @@ GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUI
 GET    /apidocs/entities/getPositions                     - Query positions
 ```
 
-### 10.2 positionReports API (9 implemented, 3 planned)
+### 10.2 positionReports API (7 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/positionReports                           - Add new Position Report
-POST   /apidocs/positionReports/batchInsert               - Batch add (canonical, accepts bare array or {reports:[]})
-POST   /apidocs/positionReports/batch                     - Batch add (legacy alias)
+POST   /apidocs/positionReports/batchInsert               - Batch add (accepts bare array or {reports:[]})
 GET    /apidocs/positionReports/getLatest                 - Get latest
          ?from_time=&to_time=                              - Filter by latest_timestamp range
          ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
 GET    /apidocs/positionReports/getByParams               - Query by parameters
-GET    /apidocs/positionReports/getLatestPerEndpoint      - Get latest per endpoint
 GET    /apidocs/positionReports/getUuids                  - List UUIDs
 GET    /apidocs/positionReports/{uuid}                    - Get by UUID
 DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
@@ -711,12 +708,11 @@ GET    /apidocs/fusedEntitySummary/{uuid}                 - Get by UUID
 DELETE /apidocs/fusedEntitySummary/{uuid}                 - Delete by UUID
 ```
 
-### 10.5 liveWorldModel API (8 endpoints)
+### 10.5 liveWorldModel API (7 endpoints)
 
 ```
 POST   /apidocs/liveWorldModel                            - Add new record
 PUT    /apidocs/liveWorldModel                            - Update record
-GET    /apidocs/liveWorldModel/getDelta                   - Get changes since timestamp
 GET    /apidocs/liveWorldModel/getByParams                - Query by parameters
 GET    /apidocs/liveWorldModel/getLatest                  - Get latest (current impl)
 GET    /apidocs/liveWorldModel/getUuids                   - List UUIDs by origin

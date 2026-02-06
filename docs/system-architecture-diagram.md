@@ -93,8 +93,8 @@ sequenceDiagram
         E->>E: Update entity positions
         E->>E: Run measurement model
 
-        E->>S: POST /apidocs/entities/batch
-        E->>S: POST /apidocs/positionReports/batch
+        E->>S: POST /apidocs/entities/batchInsert
+        E->>S: POST /apidocs/positionReports/batchInsert
         E->>S: POST /apidocs/liveWorldModel (new)
         E->>S: PUT /apidocs/liveWorldModel (updates)
     end
