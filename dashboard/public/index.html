@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiSCO Workspace</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>DiSCO Workspace</h1>
+      <span class="header-subtitle">Orchestration Dashboard</span>
+    </div>
+    <div class="header-right">
+      <button id="btn-start-all" class="btn btn-primary">Start All</button>
+      <button id="btn-stop-all" class="btn btn-danger">Stop All</button>
+    </div>
+  </header>
+
+  <!-- Service Cards -->
+  <main class="services-grid">
+    <!-- Server Card -->
+    <div class="service-card" data-service="server">
+      <div class="card-header">
+        <div class="card-title-row">
+          <span class="status-dot" id="server-status-dot"></span>
+          <h2>Surrogate Server</h2>
+          <span class="port-badge">:8765</span>
+        </div>
+        <span class="status-text" id="server-status-text">Stopped</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-label">Live World</span>
+            <span class="stat-value" id="server-liveworld-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Entity Reports</span>
+            <span class="stat-value" id="server-entity-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Position Reports</span>
+            <span class="stat-value" id="server-position-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Uptime</span>
+            <span class="stat-value" id="server-uptime">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Memory (RSS)</span>
+            <span class="stat-value" id="server-memory">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">DB Size</span>
+            <span class="stat-value" id="server-db-size">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="footer-actions">
+          <button class="btn btn-sm btn-start" data-action="start" data-service="server">Start</button>
+          <button class="btn btn-sm btn-stop" data-action="stop" data-service="server">Stop</button>
+          <button class="btn btn-sm btn-danger" id="btn-clear-db">Clear DB</button>
+        </div>
+        <div class="footer-links">
+          <a href="http://localhost:8765/dashboard" target="_blank" class="btn btn-sm btn-link">Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emulator Card -->
+    <div class="service-card" data-service="emulator">
+      <div class="card-header">
+        <div class="card-title-row">
+          <span class="status-dot" id="emulator-status-dot"></span>
+          <h2>Data Emulator</h2>
+          <span class="port-badge">:8766</span>
+        </div>
+        <span class="status-text" id="emulator-status-text">Stopped</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-label">Scenario</span>
+            <span class="stat-value" id="emulator-scenario">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Entities</span>
+            <span class="stat-value" id="emulator-entity-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Endpoints</span>
+            <span class="stat-value" id="emulator-endpoint-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Tick</span>
+            <span class="stat-value" id="emulator-tick">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Memory (RSS)</span>
+            <span class="stat-value" id="emulator-memory">-</span>
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-label">Target Server</div>
+          <div class="config-input-row">
+            <input type="text" id="emulator-target-url" class="config-input"
+                   placeholder="http://localhost:8765" value="http://localhost:8765">
+            <button class="btn btn-sm btn-accent" id="btn-set-emulator-target">Set</button>
+          </div>
+          <span class="config-status" id="emulator-target-status"></span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="footer-actions">
+          <button class="btn btn-sm btn-start" data-action="start" data-service="emulator">Start</button>
+          <button class="btn btn-sm btn-stop" data-action="stop" data-service="emulator">Stop</button>
+        </div>
+        <div class="footer-links">
+          <button class="btn btn-sm btn-accent" id="btn-pause-sim">Pause</button>
+          <button class="btn btn-sm btn-accent" id="btn-resume-sim">Resume</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client Card -->
+    <div class="service-card" data-service="client">
+      <div class="card-header">
+        <div class="card-title-row">
+          <span class="status-dot" id="client-status-dot"></span>
+          <h2>Client UI</h2>
+          <span class="port-badge">:3000</span>
+        </div>
+        <span class="status-text" id="client-status-text">Stopped</span>
+      </div>
+      <div class="card-body">
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-label">Est. RAM</span>
+            <span class="stat-value" id="client-est-ram">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Entity Reports</span>
+            <span class="stat-value" id="client-entity-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Position Reports</span>
+            <span class="stat-value" id="client-position-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Live World</span>
+            <span class="stat-value" id="client-liveworld-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Trails</span>
+            <span class="stat-value" id="client-trail-count">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Highlighted</span>
+            <span class="stat-value" id="client-highlighted-count">-</span>
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="config-label">Server Target</div>
+          <div class="config-input-row">
+            <input type="text" id="client-server-ip" class="config-input config-input-half"
+                   placeholder="127.0.0.1" value="127.0.0.1">
+            <span class="config-separator">:</span>
+            <input type="number" id="client-server-port" class="config-input config-input-port"
+                   placeholder="8765" value="8765" min="1" max="65535">
+            <button class="btn btn-sm btn-accent" id="btn-set-client-target">Set</button>
+          </div>
+          <span class="config-status" id="client-target-status"></span>
+        </div>
+        <div class="config-section">
+          <div class="config-label">Polling Mode</div>
+          <div class="config-input-row">
+            <select id="client-polling-mode" class="config-input">
+              <option value="from-beginning">From Beginning - No Gaps</option>
+              <option value="always-latest">Always Get Latest</option>
+            </select>
+            <button class="btn btn-sm btn-accent" id="btn-set-polling-mode">Set</button>
+          </div>
+          <span class="config-status" id="polling-mode-status"></span>
+          <div class="stat gap-stat" id="gap-stats-row" style="display: none;">
+            <span class="stat-label">Avg Gap / Max Gap</span>
+            <span class="stat-value" id="client-gap-stats">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="footer-actions">
+          <button class="btn btn-sm btn-start" data-action="start" data-service="client">Start</button>
+          <button class="btn btn-sm btn-stop" data-action="stop" data-service="client">Stop</button>
+          <button class="btn btn-sm btn-danger" id="btn-clear-client">Clear Data</button>
+        </div>
+        <div class="footer-links">
+          <a href="http://localhost:3000" target="_blank" class="btn btn-sm btn-link">Open UI</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scenario Selection Panel -->
+  <section class="scenario-panel" id="scenario-panel">
+    <div class="scenario-header">
+      <h3>Simulation Scenario</h3>
+      <span class="scenario-status" id="scenario-status-text">Emulator offline</span>
+    </div>
+    <div class="scenario-body">
+      <div class="scenario-select-row">
+        <select id="scenario-select" class="scenario-dropdown" disabled>
+          <option value="">-- Emulator not running --</option>
+        </select>
+        <div class="scenario-actions">
+          <button class="btn btn-sm btn-start" id="btn-start-sim" disabled>Start Simulation</button>
+          <button class="btn btn-sm btn-stop" id="btn-stop-sim" disabled>Stop Simulation</button>
+        </div>
+      </div>
+      <p class="scenario-description" id="scenario-description">Start the emulator to see available scenarios.</p>
+    </div>
+  </section>
+
+  <!-- Connectivity Panel -->
+  <section class="connectivity-panel">
+    <h3>Data Flow</h3>
+    <div class="flow-diagram">
+      <div class="flow-node" id="flow-emulator">
+        <span class="flow-label">Emulator</span>
+        <span class="flow-port">:8766</span>
+      </div>
+      <div class="flow-arrow" id="flow-arrow-em-srv">
+        <span class="arrow-label">POST reports + live world</span>
+        <span class="arrow-line">&rarr;</span>
+      </div>
+      <div class="flow-node" id="flow-server">
+        <span class="flow-label">Server</span>
+        <span class="flow-port">:8765</span>
+      </div>
+      <div class="flow-arrow" id="flow-arrow-cli-srv">
+        <span class="arrow-label">GET live world + reports</span>
+        <span class="arrow-line">&larr;</span>
+      </div>
+      <div class="flow-node" id="flow-client">
+        <span class="flow-label">Client</span>
+        <span class="flow-port">:3000</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Log Panel -->
+  <section class="log-panel">
+    <div class="log-header">
+      <h3>Service Logs</h3>
+      <div class="log-tabs">
+        <button class="log-tab active" data-log="server">Server</button>
+        <button class="log-tab" data-log="emulator">Emulator</button>
+        <button class="log-tab" data-log="client">Client</button>
+      </div>
+    </div>
+    <div class="log-output" id="log-output">
+      <pre id="log-content"></pre>
+    </div>
+  </section>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

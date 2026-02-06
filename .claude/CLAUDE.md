@@ -14,6 +14,11 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 2. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
 3. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
 4. **Pre-commit gate** - When user says "commit" or "push", FIRST check if completion-checklist has run this session. If not, invoke it before committing.
+5. **Browser screenshots** - Always resize Chrome to 900x600 before taking screenshots. Never use fullscreen.
+6. **NEVER invent API endpoints** - See "API Realism Rule" below. Every endpoint on the surrogate server and every API call from the emulator/client MUST correspond to a real DiSCO API endpoint documented in the JavaScript client reference.
+   ```bash
+   osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
+   ```
 
 ## Pre-Commit Gate (ENFORCED)
 
@@ -140,7 +145,7 @@ Adds endpoint-based entity reporting with realistic measurement simulation.
 
 | Project | Port | Tech | Start |
 |---------|------|------|-------|
-| disco_data_emulator (Server) | 8765 | Express + TypeScript | `cd disco_data_emulator && npm start` |
+| disco_data_emulator (Server) | 8766 | Flask + Python | `cd disco_data_emulator && ./start.sh` |
 | disco_live_world_client_ui (Client) | 3000 | React 19 + Vite | `cd disco_live_world_client_ui && npm run dev` |
 
 ## Cross-Project Changes
@@ -199,3 +204,33 @@ When asked about data models, table schemas, or "all fields" questions:
 3. Compare with TypeScript types (which may be incomplete or in development)
 
 **Do NOT rely solely on TypeScript types in the emulator or client** - always verify against the JavaScript client reference.
+
+## API Realism Rule (CRITICAL — HARD GATE)
+
+**The entire purpose of this project is to build apps compatible with the real DiSCO system.** Every API interaction must be grounded in the real DiSCO API as documented in the JavaScript client reference.
+
+### NEVER invent API endpoints
+
+Before implementing ANY API endpoint on the surrogate server or ANY outbound API call from the emulator/client:
+
+1. **Verify the endpoint exists** in `disco_live_world_client_ui/javascript-client/docs/` (the *Api.md files)
+2. **Verify the request/response format** matches the JavaScript client models in `javascript-client/src/model/`
+3. **Verify query parameter names** match (real DiSCO uses snake_case on the wire: `from_time`, `max_count`, `from_write_time`, etc.)
+
+### What this means in practice
+
+- **Surrogate server** (`disco_surrogate_server`): Only implement endpoints that exist in the real DiSCO API. The surrogate is a local mock of the real server — it must be API-compatible. Administrative endpoints for the surrogate itself (health, metrics, clearStores) are fine, but data API endpoints must match real DiSCO.
+- **Emulator** (`disco_data_emulator`): Only make outbound HTTP calls to endpoints that exist in the real DiSCO API. The emulator can be pointed at either the surrogate or a real DiSCO server, so it must use real API paths.
+- **Client UI** (`disco_live_world_client_ui`): Only call endpoints that exist in the real DiSCO API.
+
+### If you need functionality that DiSCO doesn't provide
+
+- **Do NOT create a fake endpoint** that looks like a DiSCO API but isn't one
+- Instead: implement the logic client-side, or flag it as a known limitation
+- Example: DiSCO has no "getDelta" or "batch live world update" endpoint — these must not be added to the surrogate server
+
+### Reference paths
+
+- API docs: `disco_live_world_client_ui/javascript-client/docs/*Api.md`
+- Models: `disco_live_world_client_ui/javascript-client/src/model/`
+- Real DiSCO base path: `/api/v1/` (surrogate uses `/apidocs/` as local equivalent)

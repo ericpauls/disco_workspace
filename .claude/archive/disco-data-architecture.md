@@ -33,10 +33,12 @@ DiSCO (Distributed Spectrum Collaboration & Operations) collects electromagnetic
 
 **Two Paths to Live World:**
 
-1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters) **[PLANNED - NOT YET IMPLEMENTED]**
+1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters) **[API ENDPOINTS IMPLEMENTED — fusion logic not yet built]**
 2. **Direct Path**: Position Reports → Live World (for DiSCO endpoint self-locations) **✓ IMPLEMENTED**
 
-> **⚠️ IMPLEMENTATION STATUS**: The current emulator implements entity/position report storage and the Direct Path. The Fused Path (correlation, summarization, fusion tables) is documented but not yet implemented.
+> **⚠️ IMPLEMENTATION STATUS**: The surrogate server implements all data storage tables and API endpoints for the full pipeline (entities, position reports, fused entity mappings, fused entity summaries, live world model). The fusion application (correlation + summarization logic) is not yet built — it will be a separate Python service that reads entity reports and writes to the mapping/summary tables via the API.
+>
+> **Live World Update Pattern**: The emulator uses `POST /liveWorldModel` for new entities (server assigns `liveworldmodel_uuid`) and `PUT /liveWorldModel` for updates (referencing the server-assigned UUID). This aligns with the official DiSCO API — no batch/sync endpoints are used. The emulator maintains an internal map of entity UUIDs to server-assigned live world UUIDs.
 
 ---
 
@@ -128,7 +130,7 @@ All three get: group_uuid = "group-555"
 | `latest_timestamp` | integer | Unix timestamp (ms) |
 | `created_timestamp` | integer | Server creation time (ms) |
 
-### 3.3 fusedEntityMapping **[PLANNED - NOT YET IMPLEMENTED]**
+### 3.3 fusedEntityMapping **[API IMPLEMENTED — awaiting fusion app]**
 
 **Purpose**: Links entity reports to correlation groups. Created by the correlation service.
 
@@ -145,7 +147,7 @@ The correlation service determines which entity reports "belong together" (repre
 - Observations from multiple different endpoints seeing the same entity
 - Forming new groups when no existing group matches a new observation
 
-### 3.4 fusedEntitySummary **[PLANNED - NOT YET IMPLEMENTED]**
+### 3.4 fusedEntitySummary **[API IMPLEMENTED — awaiting fusion app]**
 
 **Purpose**: State estimates per correlation group. New row created on each state change.
 
@@ -631,14 +633,18 @@ The `group_uuid` enables critical data provenance:
 
 ## 10. API Endpoints Reference
 
-### 10.1 entities API (7 implemented, 5 planned)
+### 10.1 entities API (9 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/entities                                  - Add new Entity Report
-POST   /apidocs/entities/batch                            - Batch add Entity Reports
-GET    /apidocs/entities/getByParams                      - Query by parameters
+POST   /apidocs/entities/batchInsert                      - Batch add (accepts bare array or {reports:[]})
+POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?max_count=                                       - Limit results (default 1000)
+GET    /apidocs/entities/getByParams                      - Query by parameters
 GET    /apidocs/entities/getUuids                         - List UUIDs
 GET    /apidocs/entities/{entity_msg_uuid}                - Get by UUID
 DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
@@ -647,20 +653,21 @@ DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
 **[PLANNED]:**
 ```
 PUT    /apidocs/entities                                  - Update Entity Report
-POST   /apidocs/entities/batchInsert                      - Alternative batch endpoint
-POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
 GET    /apidocs/entities/getPositions                     - Query positions
 ```
 
-### 10.2 positionReports API (7 implemented, 4 planned)
+### 10.2 positionReports API (7 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/positionReports                           - Add new Position Report
-GET    /apidocs/positionReports/getByParams               - Query by parameters
+POST   /apidocs/positionReports/batchInsert               - Batch add (accepts bare array or {reports:[]})
 GET    /apidocs/positionReports/getLatest                 - Get latest
-GET    /apidocs/positionReports/getLatestPerEndpoint      - Get latest per endpoint
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?max_count=                                       - Limit results (default 1000)
+GET    /apidocs/positionReports/getByParams               - Query by parameters
 GET    /apidocs/positionReports/getUuids                  - List UUIDs
 GET    /apidocs/positionReports/{uuid}                    - Get by UUID
 DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
@@ -669,12 +676,11 @@ DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
 **[PLANNED]:**
 ```
 PUT    /apidocs/positionReports                           - Update Position Report
-POST   /apidocs/positionReports/batchInsert               - Batch add Position Reports
 POST   /apidocs/positionReports/getBatchBySource          - Get batch by source UUIDs
 GET    /apidocs/positionReports/getPositions              - Query positions
 ```
 
-### 10.3 fusedEntityMapping API **[PLANNED - NOT YET IMPLEMENTED]**
+### 10.3 fusedEntityMapping API **[IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntityMapping                        - Add new mapping
@@ -688,7 +694,7 @@ GET    /apidocs/fusedEntityMapping/{uuid}                 - Get by UUID
 DELETE /apidocs/fusedEntityMapping/{uuid}                 - Delete by UUID
 ```
 
-### 10.4 fusedEntitySummary API **[PLANNED - NOT YET IMPLEMENTED]**
+### 10.4 fusedEntitySummary API **[IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntitySummary                        - Add new summary
@@ -702,12 +708,11 @@ GET    /apidocs/fusedEntitySummary/{uuid}                 - Get by UUID
 DELETE /apidocs/fusedEntitySummary/{uuid}                 - Delete by UUID
 ```
 
-### 10.5 liveWorldModel API (8 endpoints)
+### 10.5 liveWorldModel API (7 endpoints)
 
 ```
 POST   /apidocs/liveWorldModel                            - Add new record
 PUT    /apidocs/liveWorldModel                            - Update record
-GET    /apidocs/liveWorldModel/getDelta                   - Get changes since timestamp
 GET    /apidocs/liveWorldModel/getByParams                - Query by parameters
 GET    /apidocs/liveWorldModel/getLatest                  - Get latest (current impl)
 GET    /apidocs/liveWorldModel/getUuids                   - List UUIDs by origin
@@ -715,25 +720,41 @@ GET    /apidocs/liveWorldModel/{uuid}                     - Get by origin UUID
 DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
 ```
 
-### 10.6 Simulation Control & Monitoring (Implemented)
+### 10.6 Server Management API (port 8765)
 
 ```
-GET    /apidocs/health                                    - Health check
-GET    /apidocs/simulation/status                         - Get simulation status
-POST   /apidocs/simulation/pause                          - Pause simulation
-POST   /apidocs/simulation/resume                         - Resume simulation
-POST   /apidocs/simulation/clearReports                   - Clear all entity/position reports
-GET    /apidocs/metrics                                   - Get performance metrics
+GET    /apidocs/health                                    - Health check (status, counts, uptime)
+GET    /apidocs/server/status                             - Server status (uptime, store counts, capacity)
+GET    /apidocs/server/memory                             - Memory usage (RSS, heap, DB size, 2GB limit %)
+POST   /apidocs/server/clearStores                        - Clear all database tables
+GET    /apidocs/metrics                                   - Metrics snapshot (rates, counts, history)
 ```
 
-### 10.7 Endpoint Management (Implemented)
+### 10.8 Data Emulator Control API (port 8766)
+
+> **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/apidocs/` prefix). The emulator is a separate service that POSTs reports to the server.
 
 ```
-GET    /apidocs/endpoints                                 - Get all endpoints
-POST   /apidocs/endpoints/pause                           - Pause specific endpoint
-POST   /apidocs/endpoints/resume                          - Resume specific endpoint
-POST   /apidocs/endpoints/pauseAll                        - Pause all endpoints
-POST   /apidocs/endpoints/resumeAll                       - Resume all endpoints
+GET    /api/health                                        - Emulator health check
+GET    /api/status                                        - Simulation status (running, entities, tick, etc.)
+GET    /api/configs                                       - List available JSON config files with metadata
+GET    /api/memory                                        - Memory usage (RSS, heap)
+POST   /api/simulation/start                              - Start simulation from config { configFile: "path" }
+POST   /api/simulation/stop                               - Stop and destroy simulation
+POST   /api/simulation/pause                              - Pause simulation tick loop
+POST   /api/simulation/resume                             - Resume simulation tick loop
+GET    /api/config                                        - Get current config (target URL, config file)
+POST   /api/config/targetServer                           - Set target server URL
+```
+
+### 10.9 Endpoint Management (port 8766)
+
+```
+GET    /api/endpoints                                     - Get all endpoints with state
+POST   /api/endpoints/:uuid/pause                         - Pause specific endpoint
+POST   /api/endpoints/:uuid/resume                        - Resume specific endpoint
+POST   /api/endpoints/pauseAll                            - Pause all endpoints
+POST   /api/endpoints/resumeAll                           - Resume all endpoints
 ```
 
 ---

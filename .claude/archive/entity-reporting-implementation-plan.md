@@ -8,7 +8,7 @@
 > - **Phase 1 (Architecture Documentation)**: ✓ COMPLETE
 > - **Phase 2-3 (Endpoints & Measurement Model)**: ✓ LARGELY COMPLETE - Entity Reports storage, Position Reports storage, endpoint simulation with realistic measurement noise
 > - **Phase 4 (Server APIs)**: ✓ IMPLEMENTED - APIs for entity reports and position reports exist
-> - **Phase 5 (Developer Dashboard)**: NOT IMPLEMENTED
+> - **Phase 5 (Developer Dashboard)**: ✓ IMPLEMENTED - Orchestration dashboard (port 8080) with service management, scenario selection, log viewing
 > - **Phase 6 (Client UI Updates)**: ✓ IMPLEMENTED - Client has entity reports and position reports tables/views
 > - **Phase 7 (Test Scenarios)**: ✓ IMPLEMENTED - Multiple scenarios including EndpointTestScenario
 >
@@ -818,44 +818,59 @@ At 300 entity reports/second with a 10,000 report limit:
 ### 7.1 Server (disco_data_emulator)
 
 ```
-server.ts                                    - Main Express server
-types/
-  entity.ts                                  - LiveWorldEntity type
-  signal.ts                                  - Signal parameter types
-  position.ts                                - Position, Ellipse, DOF types
-  endpoint.ts                                - NEW: DiscoEndpoint type
-  entityReport.ts                            - NEW: Entity report type
-  positionReport.ts                          - NEW: Position report type
+endpoint_emulator/
+  emulator-server.ts                         - Main Express server (port 8766)
+  types/
+    entity.ts                                - LiveWorldEntity type
+    signal.ts                                - Signal parameter types
+    position.ts                              - Position, Ellipse, DOF types
+    endpoint.ts                              - DiscoEndpoint type
+    entityReport.ts                          - Entity report type
+    positionReport.ts                        - Position report type
 
-simulation/
-  SimulationEngine.ts                        - Main simulation loop
-  EntityManager.ts                           - Entity management
-  TruthDataStore.ts                          - Truth data storage
+  simulation/
+    SimulationEngine.ts                      - Main simulation loop
+    EntityManager.ts                         - Entity management
+    TruthDataStore.ts                        - Truth data storage
 
-  entities/
-    BaseEntity.ts                            - Base entity class
-    AirEntity.ts                             - Air entity
-    LandEntity.ts                            - Land entity
-    MaritimeEntity.ts                        - Maritime entity
-    DiscoEndpoint.ts                         - NEW: Endpoint entity
+    config/                                  - JSON config loading
+      ConfigLoader.ts                        - Load & hydrate JSON configs
+      ConfigTypes.ts                         - Config schema types
+      MotionSerializer.ts                    - Motion model serialization
 
-  signals/
-    EmitterProfiles.ts                       - Realistic signal profiles
-    SignalGenerator.ts                       - Signal generation
+    entities/
+      BaseEntity.ts                          - Base entity class
+      AirEntity.ts                           - Air entity
+      LandEntity.ts                          - Land entity
+      MaritimeEntity.ts                      - Maritime entity
+      DiscoEndpoint.ts                       - Endpoint entity
 
-  measurement/                               - NEW DIRECTORY
-    VisibilityCheck.ts                       - Line-of-sight checks
-    NoiseModel.ts                            - Gaussian noise generators
-    MeasurementModel.ts                      - Main measurement model
-    index.ts                                 - Exports
+    signals/
+      EmitterProfiles.ts                     - Realistic signal profiles
+      SignalGenerator.ts                     - Signal generation
 
+    measurement/
+      VisibilityCheck.ts                     - Line-of-sight checks
+      NoiseModel.ts                          - Gaussian noise generators
+      MeasurementModel.ts                    - Main measurement model
+
+    geography/
+      TerrainValidator.ts                    - Land/water terrain checks
+
+scenario_generator/
+  generate-config.ts                         - Config generation entry point
   scenarios/
-    ContestedMaritimeScenario.ts             - Existing scenario
-    EndpointTestScenario.ts                  - NEW: Test scenario
+    ContestedMaritimeScenario.ts             - South China Sea scenario
+    EndpointTestScenario.ts                  - Endpoint test scenario
+    StressTestScenario.ts                    - Configurable stress tests
+    DensityGradientScenario.ts               - Density gradient scenario
+  generators/
+    EntityFactory.ts                         - Procedural entity generation
+    EntityTemplates.ts                       - Platform type templates
+    NameGenerator.ts                         - Entity name generation
 
-stores/                                      - NEW DIRECTORY
-  EntityStore.ts                             - Entity report storage
-  PositionStore.ts                           - Position report storage
+configs/                                     - Generated JSON config files
+tests/                                       - Jest API tests
 ```
 
 ### 7.2 Client (disco_live_world_client_ui)
