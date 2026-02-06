@@ -151,7 +151,7 @@ flowchart LR
         p[("positions")]
     end
 
-    subgraph fusion["Fusion (Planned)"]
+    subgraph fusion["Fusion (API Implemented)"]
         direction TB
         fem[("mapping")]
         fes[("summary")]
@@ -209,7 +209,7 @@ flowchart LR
     class f out
 ```
 
-**Status:** PLANNED - Not yet implemented
+**Status:** API endpoints implemented in surrogate server — fusion application (correlation + summarization logic) not yet built
 
 ### Direct Path (Position Reports → Live World)
 
@@ -237,8 +237,8 @@ flowchart LR
 | `entities` | ✓ Implemented | Stores raw entity reports from endpoints |
 | `positionReports` | ✓ Implemented | Stores endpoint self-locations |
 | `liveWorldModel` | ✓ Implemented | Currently shows truth data directly |
-| `fusedEntityMapping` | Planned | Correlation service output |
-| `fusedEntitySummary` | Planned | Summarization service output |
+| `fusedEntityMapping` | API Implemented | Correlation service output (9 endpoints) |
+| `fusedEntitySummary` | API Implemented | Summarization service output (9 endpoints) |
 
 ## Key Design Principles
 

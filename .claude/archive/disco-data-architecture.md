@@ -33,10 +33,10 @@ DiSCO (Distributed Spectrum Collaboration & Operations) collects electromagnetic
 
 **Two Paths to Live World:**
 
-1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters) **[PLANNED - NOT YET IMPLEMENTED]**
+1. **Fused Path**: Entity Reports → Correlation → Summarization → Live World (for detected emitters) **[API ENDPOINTS IMPLEMENTED — fusion logic not yet built]**
 2. **Direct Path**: Position Reports → Live World (for DiSCO endpoint self-locations) **✓ IMPLEMENTED**
 
-> **⚠️ IMPLEMENTATION STATUS**: The current emulator implements entity/position report storage and the Direct Path. The Fused Path (correlation, summarization, fusion tables) is documented but not yet implemented.
+> **⚠️ IMPLEMENTATION STATUS**: The surrogate server implements all data storage tables and API endpoints for the full pipeline (entities, position reports, fused entity mappings, fused entity summaries, live world model). The fusion application (correlation + summarization logic) is not yet built — it will be a separate Python service that reads entity reports and writes to the mapping/summary tables via the API.
 >
 > **Live World Update Pattern**: The emulator uses `POST /liveWorldModel` for new entities (server assigns `liveworldmodel_uuid`) and `PUT /liveWorldModel` for updates (referencing the server-assigned UUID). This aligns with the official DiSCO API — no batch/sync endpoints are used. The emulator maintains an internal map of entity UUIDs to server-assigned live world UUIDs.
 
@@ -130,7 +130,7 @@ All three get: group_uuid = "group-555"
 | `latest_timestamp` | integer | Unix timestamp (ms) |
 | `created_timestamp` | integer | Server creation time (ms) |
 
-### 3.3 fusedEntityMapping **[PLANNED - NOT YET IMPLEMENTED]**
+### 3.3 fusedEntityMapping **[API IMPLEMENTED — awaiting fusion app]**
 
 **Purpose**: Links entity reports to correlation groups. Created by the correlation service.
 
@@ -147,7 +147,7 @@ The correlation service determines which entity reports "belong together" (repre
 - Observations from multiple different endpoints seeing the same entity
 - Forming new groups when no existing group matches a new observation
 
-### 3.4 fusedEntitySummary **[PLANNED - NOT YET IMPLEMENTED]**
+### 3.4 fusedEntitySummary **[API IMPLEMENTED — awaiting fusion app]**
 
 **Purpose**: State estimates per correlation group. New row created on each state change.
 
@@ -633,12 +633,13 @@ The `group_uuid` enables critical data provenance:
 
 ## 10. API Endpoints Reference
 
-### 10.1 entities API (8 implemented, 4 planned)
+### 10.1 entities API (9 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
 POST   /apidocs/entities                                  - Add new Entity Report
 POST   /apidocs/entities/batchInsert                      - Batch add (accepts bare array or {reports:[]})
+POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
          ?from_time=&to_time=                              - Filter by latest_timestamp range
          ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
@@ -652,7 +653,6 @@ DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
 **[PLANNED]:**
 ```
 PUT    /apidocs/entities                                  - Update Entity Report
-POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
 GET    /apidocs/entities/getPositions                     - Query positions
 ```
@@ -680,7 +680,7 @@ POST   /apidocs/positionReports/getBatchBySource          - Get batch by source 
 GET    /apidocs/positionReports/getPositions              - Query positions
 ```
 
-### 10.3 fusedEntityMapping API **[PLANNED - NOT YET IMPLEMENTED]**
+### 10.3 fusedEntityMapping API **[IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntityMapping                        - Add new mapping
@@ -694,7 +694,7 @@ GET    /apidocs/fusedEntityMapping/{uuid}                 - Get by UUID
 DELETE /apidocs/fusedEntityMapping/{uuid}                 - Delete by UUID
 ```
 
-### 10.4 fusedEntitySummary API **[PLANNED - NOT YET IMPLEMENTED]**
+### 10.4 fusedEntitySummary API **[IMPLEMENTED]**
 
 ```
 POST   /apidocs/fusedEntitySummary                        - Add new summary

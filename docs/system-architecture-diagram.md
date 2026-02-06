@@ -25,6 +25,8 @@ flowchart LR
         ent[("entities")]
         pos[("positions")]
         lw[("liveWorld")]
+        fm[("fusedMappings")]
+        fs[("fusedSummaries")]
     end
 
     ui["&nbsp;&nbsp;Client :3000&nbsp;&nbsp;"]
@@ -33,7 +35,9 @@ flowchart LR
     eps -->|POST entity<br/>reports| ent
     eps -->|POST position<br/>reports| pos
     sim -->|POST/PUT<br/>live world| lw
-    ent -.->|future:<br/>fusion| lw
+    ent -.->|future:<br/>fusion app| fm
+    fm -.->|correlation<br/>groups| fs
+    fs -.->|fused state| lw
     lw -->|REST GET| ui
     dash -.->|manages<br/>processes| emu
     dash -.->|manages<br/>processes| srv
@@ -69,7 +73,7 @@ flowchart LR
 | Component | Responsibility | Port |
 |-----------|---------------|------|
 | **Orchestration Dashboard** | Process management, config file selection, service monitoring, client stats display | 8080 |
-| **Surrogate Server** | API serving, data stores (entities, positions, live world) | 8765 |
+| **Surrogate Server** | API serving, data stores (entities, positions, fused mappings, fused summaries, live world) | 8765 |
 | **Data Emulator** | JSON config loading, simulation engine, endpoint generation, report submission | 8766 |
 | **Client UI** | Visualization, user interaction, memory stats estimation, data clear | 3000 |
 

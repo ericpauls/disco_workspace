@@ -62,6 +62,8 @@ flowchart LR
             entity_db[("Entities")]
             pos_db[("Positions")]
             lw_db[("Live World")]
+            fm_db[("Fused Mappings")]
+            fs_db[("Fused Summaries")]
         end
 
         subgraph emulator["&nbsp;&nbsp;Data Emulator :8766&nbsp;&nbsp;"]
@@ -91,7 +93,7 @@ flowchart LR
 
     class dev person
     class dash,client,sim,scenarios container
-    class entity_db,pos_db,lw_db db
+    class entity_db,pos_db,lw_db,fm_db,fs_db db
     class js_client ext
     class disco boundary
     class server,emulator inner
@@ -112,6 +114,8 @@ flowchart LR
             entities["Entities"]
             positions["Positions"]
             liveworld["LiveWorld"]
+            fusedMapping["FusedMapping"]
+            fusedSummary["FusedSummary"]
             health["Health"]
         end
 
@@ -119,6 +123,8 @@ flowchart LR
             e_db[("E")]
             p_db[("P")]
             lw_db[("LW")]
+            fm_db[("FM")]
+            fs_db[("FS")]
         end
 
         express --> apis
@@ -136,8 +142,8 @@ flowchart LR
     classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-    class express,entities,positions,liveworld,health comp
-    class e_db,p_db,lw_db comp
+    class express,entities,positions,liveworld,fusedMapping,fusedSummary,health comp
+    class e_db,p_db,lw_db,fm_db,fs_db comp
     class server sbox
     class emulator,client ext
     class apis,stores inner
