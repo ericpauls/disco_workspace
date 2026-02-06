@@ -137,9 +137,9 @@ Assistant: [commits]
 
 ## Active Development Branch
 
-**Current feature branch:** `add_endpoints_and_entities`
+**Current branch:** `main`
 
-Adds endpoint-based entity reporting with realistic measurement simulation.
+All database realism work has been merged to main.
 
 ## Project Structure
 
