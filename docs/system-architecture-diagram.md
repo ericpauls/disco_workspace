@@ -68,9 +68,9 @@ flowchart LR
 
 | Component | Responsibility | Port |
 |-----------|---------------|------|
-| **Orchestration Dashboard** | Process management, scenario selection, service monitoring, client stats display | 8080 |
+| **Orchestration Dashboard** | Process management, config file selection, service monitoring, client stats display | 8080 |
 | **Surrogate Server** | API serving, data stores (entities, positions, live world) | 8765 |
-| **Data Emulator** | Scenario simulation, endpoint generation, report submission | 8766 |
+| **Data Emulator** | JSON config loading, simulation engine, endpoint generation, report submission | 8766 |
 | **Client UI** | Visualization, user interaction, memory stats estimation, data clear | 3000 |
 
 ## Communication Patterns

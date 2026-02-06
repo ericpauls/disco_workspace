@@ -62,7 +62,7 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     port: 8766,
     cwd: path.join(workspaceRoot, 'disco_data_emulator'),
     command: 'npx',
-    args: ['tsx', 'emulator-server.ts'],
+    args: ['tsx', 'endpoint_emulator/emulator-server.ts'],
     healthUrl: 'http://localhost:8766/api/health'
   },
   client: {

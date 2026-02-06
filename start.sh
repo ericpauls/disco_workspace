@@ -17,7 +17,6 @@
 #
 # OPTIONS:
 #   --dashboard-only      Start only the dashboard (don't auto-start services)
-#   --scenario NAME       Emulator scenario (default: density-gradient)
 #   --skip-install        Skip npm install prompts
 #   --force-install       Force npm install for all projects
 #   --no-browser          Don't open browser automatically
@@ -35,7 +34,6 @@ DASHBOARD_PORT=8080
 SERVER_PORT=8765
 EMULATOR_PORT=8766
 CLIENT_PORT=3000
-SCENARIO="density-gradient"
 SKIP_INSTALL=false
 FORCE_INSTALL=false
 OPEN_BROWSER=true
@@ -411,27 +409,16 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --dashboard-only      Start only the dashboard (don't auto-start services)"
-    echo "  --scenario NAME       Emulator scenario (default: density-gradient)"
     echo "  --skip-install        Skip npm install prompts (fail if deps missing)"
     echo "  --force-install       Force npm install for all projects"
     echo "  --no-browser          Don't open browser automatically"
     echo "  --help, -h            Show this help message"
     echo ""
-    echo "Available Scenarios:"
-    echo "  density-gradient      10 endpoints through dense cluster @ 36x speed (default)"
-    echo "  endpoint-test         3 DiSCO endpoints + 100 entities"
-    echo "  stress-tiny           100 entities"
-    echo "  stress-tiny-fast      100 entities @ 1000x speed"
-    echo "  stress-small          1,000 entities"
-    echo "  stress-small-fast     1,000 entities @ 1000x speed"
-    echo "  stress-medium         5,000 entities"
-    echo "  stress-large          10,000 entities"
-    echo "  stress-extreme        25,000 entities"
-    echo "  contested-maritime    80 entities (realistic scenario)"
+    echo "The emulator starts idle. Use the dashboard dropdown to select and start"
+    echo "a JSON config file. Generate configs with: cd disco_data_emulator && ./generate-config.sh"
     echo ""
     echo "Examples:"
     echo "  ./start.sh                                  # Default configuration"
-    echo "  ./start.sh --scenario endpoint-test         # Endpoint test scenario"
     echo "  ./start.sh --dashboard-only                 # Dashboard without auto-start"
     echo "  ./start.sh --force-install                  # Reinstall all dependencies"
     echo ""
@@ -443,10 +430,6 @@ parse_arguments() {
             --dashboard-only)
                 DASHBOARD_ONLY=true
                 shift
-                ;;
-            --scenario)
-                SCENARIO="$2"
-                shift 2
                 ;;
             --skip-install)
                 SKIP_INSTALL=true
@@ -488,7 +471,6 @@ main() {
     echo -e "  Server:     ${GREEN}:${SERVER_PORT}${NC}"
     echo -e "  Emulator:   ${GREEN}:${EMULATOR_PORT}${NC}"
     echo -e "  Client:     ${GREEN}:${CLIENT_PORT}${NC}"
-    echo -e "  Scenario:   ${GREEN}${SCENARIO}${NC}"
     echo ""
 
     trap cleanup SIGINT SIGTERM

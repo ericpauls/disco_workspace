@@ -203,7 +203,7 @@ async function resumeSimulation() {
 
 async function fetchScenarios() {
   try {
-    const response = await fetch('http://localhost:8766/api/scenarios');
+    const response = await fetch('http://localhost:8766/api/configs');
     if (!response.ok) return null;
     return await response.json();
   } catch {
@@ -211,12 +211,12 @@ async function fetchScenarios() {
   }
 }
 
-async function startSimulationWithScenario(scenarioKey) {
+async function startSimulationWithScenario(configPath) {
   try {
     const response = await fetch('http://localhost:8766/api/simulation/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scenario: scenarioKey })
+      body: JSON.stringify({ configFile: configPath })
     });
     return await response.json();
   } catch (error) {
@@ -448,21 +448,17 @@ async function updateScenarioPanel(emulatorStatus) {
     return;
   }
 
-  // Emulator is running - load scenarios if not already loaded
+  // Emulator is running - load configs if not already loaded
   if (!scenariosLoaded) {
     const data = await fetchScenarios();
-    if (data && data.scenarios) {
-      scenariosList = data.scenarios;
+    if (data && data.configs) {
+      scenariosList = data.configs;
       elements.scenarioSelect.innerHTML = '';
-      for (const s of data.scenarios) {
+      for (const s of data.configs) {
         const opt = document.createElement('option');
-        opt.value = s.key;
-        opt.textContent = s.isDefault ? `${s.name} (default)` : s.name;
+        opt.value = s.path;
+        opt.textContent = `${s.name} (${s.totalEntities} entities, ${s.totalEndpoints} endpoints)`;
         elements.scenarioSelect.appendChild(opt);
-      }
-      // Pre-select the default
-      if (data.defaultScenario) {
-        elements.scenarioSelect.value = data.defaultScenario;
       }
       updateScenarioDescription();
       scenariosLoaded = true;
@@ -480,18 +476,19 @@ async function updateScenarioPanel(emulatorStatus) {
     elements.scenarioSelect.disabled = true;
     elements.btnStartSim.disabled = true;
     elements.btnStopSim.disabled = false;
-    setText(elements.scenarioStatusText, `Running: ${statusData.scenario}`);
+    const configLabel = statusData.configFile || 'unknown';
+    setText(elements.scenarioStatusText, `Running: ${configLabel}`);
     setClass(elements.scenarioStatusText, 'scenario-status running');
-    // Sync dropdown to current scenario (scenario field is the name, not key)
-    const match = scenariosList.find(s => s.name === statusData.scenario);
-    if (match) elements.scenarioSelect.value = match.key;
-  } else if (!statusData.scenario || statusData.scenario === 'None') {
+    // Sync dropdown to current config
+    const match = scenariosList.find(s => s.path === statusData.configFile);
+    if (match) elements.scenarioSelect.value = match.path;
+  } else if (!statusData.configFile) {
     // Idle - no simulation loaded
     currentSimState = 'idle';
     elements.scenarioSelect.disabled = false;
     elements.btnStartSim.disabled = false;
     elements.btnStopSim.disabled = true;
-    setText(elements.scenarioStatusText, 'Idle - select a scenario');
+    setText(elements.scenarioStatusText, 'Idle - select a config');
     setClass(elements.scenarioStatusText, 'scenario-status idle');
   } else {
     // Paused (simulation object exists but not ticking)
@@ -499,15 +496,16 @@ async function updateScenarioPanel(emulatorStatus) {
     elements.scenarioSelect.disabled = true;
     elements.btnStartSim.disabled = true;
     elements.btnStopSim.disabled = false;
-    setText(elements.scenarioStatusText, `Paused: ${statusData.scenario}`);
+    const configLabel = statusData.configFile || 'unknown';
+    setText(elements.scenarioStatusText, `Paused: ${configLabel}`);
     setClass(elements.scenarioStatusText, 'scenario-status');
   }
 }
 
 function updateScenarioDescription() {
-  const key = elements.scenarioSelect.value;
-  const scenario = scenariosList.find(s => s.key === key);
-  setText(elements.scenarioDescription, scenario ? scenario.description : '');
+  const configPath = elements.scenarioSelect.value;
+  const config = scenariosList.find(s => s.path === configPath);
+  setText(elements.scenarioDescription, config ? config.description : '');
 }
 
 function updateLogs(logData) {

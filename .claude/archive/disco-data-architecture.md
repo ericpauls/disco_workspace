@@ -741,13 +741,13 @@ GET    /apidocs/metrics                                   - Metrics snapshot (ra
 ```
 GET    /api/health                                        - Emulator health check
 GET    /api/status                                        - Simulation status (running, entities, tick, etc.)
-GET    /api/scenarios                                     - List available scenarios with descriptions
+GET    /api/configs                                       - List available JSON config files with metadata
 GET    /api/memory                                        - Memory usage (RSS, heap)
-POST   /api/simulation/start                              - Start simulation with scenario {scenario: key}
+POST   /api/simulation/start                              - Start simulation from config { configFile: "path" }
 POST   /api/simulation/stop                               - Stop and destroy simulation
 POST   /api/simulation/pause                              - Pause simulation tick loop
 POST   /api/simulation/resume                             - Resume simulation tick loop
-GET    /api/config                                        - Get current config (target URL, scenario)
+GET    /api/config                                        - Get current config (target URL, config file)
 POST   /api/config/targetServer                           - Set target server URL
 ```
 

@@ -230,14 +230,14 @@ flowchart LR
             sig_noise["Signal Noise"]
         end
 
-        subgraph scenarios_box["Scenarios"]
-            scenario_cfg["Scenario Config"]
+        subgraph config_box["Config Loading"]
+            config_loader["Config Loader<br/><i>JSON configs</i>"]
         end
 
         emu_api -->|start/stop| sim
         loop --> mgr
         loop --> measurement
-        scenario_cfg --> mgr
+        config_loader --> mgr
     end
 
     server["<b>Surrogate Server</b><br/><i>:8765</i>"]
@@ -245,17 +245,17 @@ flowchart LR
 
     endpoints -->|POST reports| server
     truth -->|POST/PUT| server
-    dashboard -.->|scenario control| emu_api
+    dashboard -.->|config selection| emu_api
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
     classDef sbox fill:#FFF3E0,stroke:#E65100,stroke-width:2px
     classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
-    class emu_api,loop,mgr,truth,endpoints,visibility,geo_noise,sig_noise,scenario_cfg comp
+    class emu_api,loop,mgr,truth,endpoints,visibility,geo_noise,sig_noise,config_loader comp
     class emu sbox
     class server,dashboard ext
-    class sim,measurement,scenarios_box inner
+    class sim,measurement,config_box inner
 ```
 
 ## Deployment Diagram
@@ -330,4 +330,4 @@ flowchart TB
 
 5. **SQLite Storage**: The surrogate server uses SQLite (in-memory via better-sqlite3) with R-tree spatial indexing, FIFO eviction at 100K records, and a 2 GB database size limit with tiered warnings
 
-6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a scenario via the dashboard before data flows
+6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a JSON config file via the dashboard before data flows
