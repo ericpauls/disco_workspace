@@ -34,15 +34,90 @@ Combine results to get all modified/added files.
 
 Follow the complete verification workflow:
 
-1. Check if servers are running, if not run `./start.sh`
-2. Open Chrome for BOTH:
+1. Check if servers are running (curl health endpoints), if not run `./start.sh`
+2. Ensure Chrome has tabs open for ALL THREE UIs:
+   - Orchestration Dashboard: http://localhost:8080
    - Client UI: http://localhost:3000
-   - Server dashboard: http://localhost:8765/dashboard
-3. Take screenshots of BOTH UIs using browser automation
+   - Surrogate Server Dashboard: http://localhost:8765/dashboard
+3. Take screenshots of each UI using **non-interactive window-ID capture** (see below)
 4. Read and inspect the screenshots using the Read tool
 5. Verify the specific feature works
 
 **TypeScript compilation is NOT sufficient. Visual verification is MANDATORY.**
+
+#### Screenshot Method (MUST use this — no interactive screenshots)
+
+Use this function to switch to a Chrome tab and capture it without any user interaction:
+
+```bash
+capture_chrome_tab() {
+    local url_pattern="$1"
+    local output_file="$2"
+
+    # Switch to tab matching URL pattern (or open if not found)
+    local found
+    found=$(osascript -e "
+tell application \"Google Chrome\"
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains \"$url_pattern\" then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                activate
+                return true
+            end if
+        end repeat
+    end repeat
+    return false
+end tell")
+
+    if [ "$found" = "false" ]; then
+        osascript -e "tell application \"Google Chrome\"
+            open location \"http://$url_pattern\"
+            activate
+        end tell"
+        sleep 2
+    else
+        sleep 0.5
+    fi
+
+    # Get frontmost Chrome window ID via Swift (CGWindowID)
+    local wid
+    wid=$(swift -e '
+import CoreGraphics
+if let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
+    for window in windowList {
+        if let owner = window["kCGWindowOwnerName"] as? String, owner == "Google Chrome",
+           let layer = window["kCGWindowLayer"] as? Int, layer == 0,
+           let wid = window["kCGWindowNumber"] as? Int {
+            print(wid)
+            break
+        }
+    }
+}
+' 2>/dev/null)
+
+    if [[ -n "$wid" ]]; then
+        screencapture -l "$wid" -x "$output_file"
+    else
+        echo "ERROR: Could not find Chrome window for $url_pattern"
+        return 1
+    fi
+}
+
+# Usage — clean old screenshots BEFORE capturing, NEVER clean after
+rm -rf ./screenshots/*.png 2>/dev/null
+mkdir -p ./screenshots
+capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
+capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
+```
+
+**IMPORTANT**: Never use bare `screencapture -x` or `screencapture -w` — these can trigger the macOS interactive screenshot tool and require user clicks. Always use the window-ID method above.
+
+**IMPORTANT**: Clean screenshots BEFORE capturing (not after). Leave screenshots in `./screenshots/` when done so the user can review them later.
 
 Reference: `/Users/ericpauls/Documents/disco_workspace/.claude/archive/claude_code_web_dev_workflow.md`
 

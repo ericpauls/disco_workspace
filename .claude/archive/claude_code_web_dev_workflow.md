@@ -176,38 +176,104 @@ done
 
 ## Screenshot Capture
 
-### Basic Screenshot Commands
+### IMPORTANT: Use Window-ID Capture (Non-Interactive)
+
+**Never use bare `screencapture -x` or `screencapture -w`** — on modern macOS these can trigger the interactive screenshot tool, requiring user clicks. This breaks closed-loop automated testing.
+
+**Always use window-ID-based capture** via `screencapture -l <windowID> -x`, which is guaranteed non-interactive.
+
+### Non-Interactive Screenshot Function
 
 ```bash
-# Create screenshots directory if needed
+# Switch to a Chrome tab matching a URL pattern, then capture its window
+# Uses CGWindowID via Swift for guaranteed non-interactive capture
+capture_chrome_tab() {
+    local url_pattern="$1"
+    local output_file="$2"
+
+    # Switch to tab matching URL pattern (or open if not found)
+    local found
+    found=$(osascript -e "
+tell application \"Google Chrome\"
+    repeat with w in windows
+        set tabIndex to 0
+        repeat with t in tabs of w
+            set tabIndex to tabIndex + 1
+            if URL of t contains \"$url_pattern\" then
+                set active tab index of w to tabIndex
+                set index of w to 1
+                activate
+                return true
+            end if
+        end repeat
+    end repeat
+    return false
+end tell")
+
+    if [ "$found" = "false" ]; then
+        osascript -e "tell application \"Google Chrome\"
+            open location \"http://$url_pattern\"
+            activate
+        end tell"
+        sleep 2
+    else
+        sleep 0.5
+    fi
+
+    # Get frontmost Chrome window ID via Swift (CGWindowID)
+    local wid
+    wid=$(swift -e '
+import CoreGraphics
+if let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
+    for window in windowList {
+        if let owner = window["kCGWindowOwnerName"] as? String, owner == "Google Chrome",
+           let layer = window["kCGWindowLayer"] as? Int, layer == 0,
+           let wid = window["kCGWindowNumber"] as? Int {
+            print(wid)
+            break
+        }
+    }
+}
+' 2>/dev/null)
+
+    if [[ -n "$wid" ]]; then
+        screencapture -l "$wid" -x "$output_file"
+    else
+        echo "ERROR: Could not find Chrome window for $url_pattern"
+        return 1
+    fi
+}
+```
+
+### Usage
+
+```bash
+# Clean screenshots BEFORE capturing (so previous results don't linger)
+rm -rf ./screenshots/*.png 2>/dev/null
 mkdir -p ./screenshots
 
-# Capture entire screen
-screencapture ./screenshots/full_screen.png
+# Capture all three DiSCO UIs
+capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
+capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 
-# Capture without shadow/border (-x flag)
-screencapture -x ./screenshots/clean_capture.png
-
-# Capture after delay (seconds)
-screencapture -T 2 ./screenshots/delayed.png
+# Then use the Read tool to inspect each screenshot
 ```
 
-### Automated Screenshot Workflow
+### Screenshot Lifecycle (IMPORTANT)
 
-```bash
-# Bring Chrome to front and capture
-osascript -e 'tell application "Google Chrome" to activate'
-sleep 0.5
-screencapture -x ./screenshots/ui_verification.png
-```
+- **Clean BEFORE** capturing — wipe old PNGs at the start of each verification run
+- **NEVER clean AFTER** — leave screenshots in place when done so the user can review them
+- Screenshots persist in `./screenshots/` until the next verification run clears them
 
 ### Best Practices for Screenshots
 
-1. **Use absolute paths in test scripts** - Avoid `./screenshots/` which resolves differently based on CWD
-2. **Archive before new testing** - Use dated subfolders for permanent reference
+1. **Always use `capture_chrome_tab`** - Never use bare `screencapture` commands
+2. **Use absolute paths in test scripts** - Avoid `./screenshots/` which resolves differently based on CWD
 3. **Use descriptive filenames** - `entity_table_populated.png`, `dark_mode_toggle.png`
 4. **Capture before and after** - For UI changes, capture both states
 5. **Read screenshots after capture** - Use Claude's vision to verify the UI
+6. **Never delete screenshots after verification** - The user may want to inspect them
 
 ## Complete Verification Workflow
 
@@ -216,28 +282,26 @@ screencapture -x ./screenshots/ui_verification.png
 ```bash
 # 1. Start the application
 ./start.sh &
-sleep 3  # Wait for server/client to start
+sleep 10  # Wait for all services to start
 
-# 2. Open in Chrome with correct window size
-open -a "Google Chrome" --args --window-size=900,600 http://localhost:3000
-sleep 2  # Wait for page load
+# 2. Verify services are healthy
+curl -s http://localhost:8080/api/health | python3 -m json.tool
 
-# 3. Verify page loaded
-TITLE=$(osascript -e 'tell application "Google Chrome" to execute front window'\''s active tab javascript "document.title"')
-echo "Page title: $TITLE"
+# 3. Resize Chrome window
+osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
 
 # 4. Check for expected elements
 ELEMENT_COUNT=$(osascript -e 'tell application "Google Chrome" to execute front window'\''s active tab javascript "document.querySelectorAll('\''.entity-row'\'').length"')
 echo "Found $ELEMENT_COUNT entity rows"
 
-# 5. Take screenshot for visual verification
+# 5. Take screenshots using non-interactive window-ID capture
 mkdir -p ./screenshots
-osascript -e 'tell application "Google Chrome" to activate'
-sleep 0.5
-screencapture -x ./screenshots/verification.png
+capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
+capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 
-# 6. Read and inspect the screenshot (Claude vision)
-# Use the Read tool to examine ./screenshots/verification.png
+# 6. Read and inspect the screenshots (Claude vision)
+# Use the Read tool to examine each screenshot
 ```
 
 ### Verification Checklist
@@ -343,12 +407,13 @@ end tell'
 
 **This is the MINIMUM required verification for ANY UI change:**
 
-1. **Run `./start.sh`** to start both server and client
-2. **Wait for startup** - Give server and client time to initialize (~5 seconds)
-3. **Verify server is running**: `curl -s http://localhost:8765/health | jq .`
-4. **Take screenshots** of BOTH:
+1. **Run `./start.sh`** to start all services
+2. **Wait for startup** - Give services time to initialize (~10 seconds)
+3. **Verify services are running**: `curl -s http://localhost:8080/api/health`
+4. **Take screenshots** of ALL THREE using `capture_chrome_tab` (non-interactive):
+   - Orchestration Dashboard at http://localhost:8080
    - Client UI at http://localhost:3000
-   - Server dashboard at http://localhost:8765/dashboard
+   - Surrogate Server Dashboard at http://localhost:8765/dashboard
 5. **Read and inspect screenshots** using the Read tool - actually look at them
 6. **Verify the specific feature you changed** - don't just check "it loads"
 7. **If anything is wrong, fix it** before reporting to user
@@ -362,59 +427,24 @@ Run this BEFORE claiming any feature is complete:
 ./start.sh &
 sleep 5
 
-# 2. Verify server health
-curl -s http://localhost:8765/health | jq .
+# 2. Verify service health
+curl -s http://localhost:8080/api/health | python3 -m json.tool
+curl -s http://localhost:8765/apidocs/health | python3 -m json.tool
+curl -s http://localhost:8766/api/health | python3 -m json.tool
 
-# 3. Create screenshots directory
+# 3. Define the capture function (see "Screenshot Capture" section above)
+# ... (paste capture_chrome_tab function here)
+
+# 4. Resize Chrome window to 900x600
+osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
+
+# 5. Capture all three UIs (non-interactive, no user clicks needed)
 mkdir -p ./screenshots
+capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
+capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 
-# 4. Switch to existing client tab OR open if not found, then capture
-osascript -e '
-tell application "Google Chrome"
-    set found to false
-    repeat with w in windows
-        set tabIndex to 0
-        repeat with t in tabs of w
-            set tabIndex to tabIndex + 1
-            if URL of t contains "localhost:3000" then
-                set active tab index of w to tabIndex
-                set index of w to 1
-                set found to true
-                exit repeat
-            end if
-        end repeat
-        if found then exit repeat
-    end repeat
-    if not found then open location "http://localhost:3000"
-    activate
-end tell'
-sleep 2
-screencapture -x ./screenshots/client_ui.png
-
-# 5. Switch to existing dashboard tab OR open if not found, then capture
-osascript -e '
-tell application "Google Chrome"
-    set found to false
-    repeat with w in windows
-        set tabIndex to 0
-        repeat with t in tabs of w
-            set tabIndex to tabIndex + 1
-            if URL of t contains "localhost:8765/dashboard" then
-                set active tab index of w to tabIndex
-                set index of w to 1
-                set found to true
-                exit repeat
-            end if
-        end repeat
-        if found then exit repeat
-    end repeat
-    if not found then open location "http://localhost:8765/dashboard"
-    activate
-end tell'
-sleep 2
-screencapture -x ./screenshots/server_dashboard.png
-
-# 6. Use Read tool to inspect both screenshots
+# 6. Use Read tool to inspect all three screenshots
 ```
 
 ### What "Done" Means
