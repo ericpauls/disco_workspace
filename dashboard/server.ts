@@ -61,8 +61,8 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     displayName: 'Data Emulator',
     port: 8766,
     cwd: path.join(workspaceRoot, 'disco_data_emulator'),
-    command: 'npx',
-    args: ['tsx', 'endpoint_emulator/emulator-server.ts'],
+    command: path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
+    args: ['-m', 'endpoint_emulator.emulator_server'],
     healthUrl: 'http://localhost:8766/api/health'
   },
   client: {
@@ -218,7 +218,7 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
     const childProcess = spawn(config.command, config.args, {
       cwd: config.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '0' }
+      env: { ...process.env, FORCE_COLOR: '0', PYTHONPATH: config.cwd }
     });
 
     service.process = childProcess;

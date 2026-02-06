@@ -180,27 +180,66 @@ install_dependencies() {
     fi
 }
 
+has_python_dependencies() {
+    local dir=$1
+    [[ -d "${dir}/.venv" ]] && [[ -f "${dir}/.venv/bin/activate" ]]
+}
+
+install_python_dependencies() {
+    local dir=$1
+    local name=$2
+
+    if [[ ! -d "${dir}/.venv" ]]; then
+        print_info "Creating Python virtual environment for $name..."
+        if ! python3 -m venv "${dir}/.venv"; then
+            print_error "Failed to create virtual environment for $name"
+            return 1
+        fi
+    fi
+
+    print_info "Installing Python dependencies for $name..."
+    if (source "${dir}/.venv/bin/activate" && pip install -r "${dir}/requirements.txt"); then
+        print_success "$name Python dependencies installed"
+        return 0
+    else
+        print_error "Failed to install $name Python dependencies"
+        return 1
+    fi
+}
+
 check_dependencies() {
     print_header "Checking Dependencies"
 
-    local dirs_to_check=(
+    # --- Check that all project directories exist ---
+    local all_dirs=(
         "$DASHBOARD_DIR:Dashboard"
         "$SERVER_DIR:Surrogate Server"
         "$EMULATOR_DIR:Data Emulator"
         "$CLIENT_DIR:Client UI"
     )
 
-    local needs_install=()
-
-    for entry in "${dirs_to_check[@]}"; do
+    for entry in "${all_dirs[@]}"; do
         local dir="${entry%%:*}"
         local name="${entry##*:}"
-
         if [[ ! -d "$dir" ]]; then
             print_error "$name directory not found: $dir"
             print_info "Did you forget to initialize submodules? Run: git submodule update --init"
             exit 1
         fi
+    done
+
+    # --- Check npm dependencies (Dashboard, Surrogate Server, Client UI) ---
+    local npm_dirs_to_check=(
+        "$DASHBOARD_DIR:Dashboard"
+        "$SERVER_DIR:Surrogate Server"
+        "$CLIENT_DIR:Client UI"
+    )
+
+    local needs_install=()
+
+    for entry in "${npm_dirs_to_check[@]}"; do
+        local dir="${entry%%:*}"
+        local name="${entry##*:}"
 
         if has_dependencies "$dir" && [[ "$FORCE_INSTALL" != true ]]; then
             print_success "$name dependencies found"
@@ -218,12 +257,12 @@ check_dependencies() {
         echo ""
 
         if [[ "$SKIP_INSTALL" == true ]]; then
-            print_error "Dependencies missing and --skip-install was specified"
+            print_error "npm dependencies missing and --skip-install was specified"
             exit 1
         fi
 
         if [[ "$FORCE_INSTALL" != true ]]; then
-            echo -e "${YELLOW}Some dependencies need to be installed.${NC}"
+            echo -e "${YELLOW}Some npm dependencies need to be installed.${NC}"
             read -p "Install now? (Y/n): " -n 1 -r
             echo ""
             if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
@@ -239,6 +278,70 @@ check_dependencies() {
                 exit 1
             fi
         done
+    fi
+
+    # --- Check Python dependencies (Data Emulator) ---
+    if ! command -v python3 &>/dev/null; then
+        print_error "Python 3 is not installed or not in PATH (required for Data Emulator)"
+        print_info "Install Python 3.10+ from https://www.python.org/downloads/"
+        exit 1
+    fi
+
+    if has_python_dependencies "$EMULATOR_DIR" && [[ "$FORCE_INSTALL" != true ]]; then
+        # Verify key packages are importable
+        local missing_pkgs=""
+        for pkg in flask requests shapely; do
+            if ! "${EMULATOR_DIR}/.venv/bin/python3" -c "import $pkg" 2>/dev/null; then
+                missing_pkgs="$missing_pkgs $pkg"
+            fi
+        done
+        if [[ -n "$missing_pkgs" ]]; then
+            print_warning "Data Emulator missing Python packages:${missing_pkgs}"
+        else
+            print_success "Data Emulator Python dependencies found"
+        fi
+
+        if [[ -n "$missing_pkgs" ]]; then
+            if [[ "$SKIP_INSTALL" == true ]]; then
+                print_error "Python dependencies missing and --skip-install was specified"
+                exit 1
+            fi
+            echo -e "${YELLOW}Some Python packages need to be installed.${NC}"
+            read -p "Install now? (Y/n): " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+                print_error "Cannot proceed without Python dependencies"
+                exit 1
+            fi
+            if ! install_python_dependencies "$EMULATOR_DIR" "Data Emulator"; then
+                exit 1
+            fi
+        fi
+    else
+        if [[ "$FORCE_INSTALL" == true ]]; then
+            print_info "Force install: Data Emulator (Python)"
+        else
+            print_warning "Data Emulator Python environment missing (.venv)"
+        fi
+
+        if [[ "$SKIP_INSTALL" == true ]]; then
+            print_error "Python environment missing and --skip-install was specified"
+            exit 1
+        fi
+
+        if [[ "$FORCE_INSTALL" != true ]]; then
+            echo -e "${YELLOW}Data Emulator Python environment needs to be set up.${NC}"
+            read -p "Create .venv and install dependencies now? (Y/n): " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+                print_error "Cannot proceed without Python dependencies"
+                exit 1
+            fi
+        fi
+
+        if ! install_python_dependencies "$EMULATOR_DIR" "Data Emulator"; then
+            exit 1
+        fi
     fi
 }
 

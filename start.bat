@@ -212,7 +212,6 @@ if not exist "%CLIENT_DIR%" (
 
 set "DASHBOARD_NEEDS_INSTALL=false"
 set "SERVER_NEEDS_INSTALL=false"
-set "EMULATOR_NEEDS_INSTALL=false"
 set "CLIENT_NEEDS_INSTALL=false"
 
 REM Check dashboard dependencies
@@ -239,15 +238,16 @@ if "%FORCE_INSTALL%"=="true" (
     )
 )
 
-REM Check emulator dependencies
+REM Check emulator dependencies (Python .venv)
+set "EMULATOR_PYTHON_NEEDS_INSTALL=false"
 if "%FORCE_INSTALL%"=="true" (
-    set "EMULATOR_NEEDS_INSTALL=true"
+    set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
 ) else (
-    if exist "%EMULATOR_DIR%\node_modules" (
-        echo [OK] Data Emulator dependencies found
+    if exist "%EMULATOR_DIR%\.venv\Scripts\python.exe" (
+        echo [OK] Data Emulator Python environment found
     ) else (
-        echo [WARN] Data Emulator dependencies missing
-        set "EMULATOR_NEEDS_INSTALL=true"
+        echo [WARN] Data Emulator Python environment missing (.venv)
+        set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
     )
 )
 
@@ -265,11 +265,10 @@ if "%FORCE_INSTALL%"=="true" (
 
 if "%FORCE_INSTALL%"=="true" echo [INFO] Force install requested for all projects
 
-REM Check if any need install
+REM Check if any npm projects need install
 set "ANY_NEED_INSTALL=false"
 if "%DASHBOARD_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 if "%SERVER_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
-if "%EMULATOR_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 if "%CLIENT_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 
 if not "%ANY_NEED_INSTALL%"=="true" goto :dependencies_ok
@@ -318,20 +317,6 @@ if "%SERVER_NEEDS_INSTALL%"=="true" (
     echo [OK] Surrogate Server dependencies installed
 )
 
-REM Install emulator dependencies
-if "%EMULATOR_NEEDS_INSTALL%"=="true" (
-    echo [INFO] Installing dependencies for Data Emulator...
-    pushd "%EMULATOR_DIR%"
-    call npm install
-    if errorlevel 1 (
-        popd
-        echo [ERROR] Failed to install Data Emulator dependencies
-        exit /b 1
-    )
-    popd
-    echo [OK] Data Emulator dependencies installed
-)
-
 REM Install client dependencies
 if "%CLIENT_NEEDS_INSTALL%"=="true" (
     echo [INFO] Installing dependencies for Client UI...
@@ -350,6 +335,54 @@ if "%CLIENT_NEEDS_INSTALL%"=="true" (
 )
 
 :dependencies_ok
+
+REM --- Check Python dependencies for Data Emulator ---
+if not "%EMULATOR_PYTHON_NEEDS_INSTALL%"=="true" goto :python_deps_ok
+
+echo.
+echo [INFO] Data Emulator requires Python. Checking...
+
+REM Check Python is available
+where python >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python 3 is not installed or not in PATH.
+    echo [INFO] Install Python 3.10+ from https://www.python.org/downloads/
+    exit /b 1
+)
+
+if "%SKIP_INSTALL%"=="true" (
+    echo [ERROR] Python environment missing and --skip-install was specified
+    exit /b 1
+)
+
+if not "%FORCE_INSTALL%"=="true" (
+    echo Data Emulator Python environment needs to be set up.
+    set /p "REPLY=Create .venv and install dependencies now? (Y/n): "
+    if /i "!REPLY!"=="n" (
+        echo [ERROR] Cannot proceed without Python dependencies
+        exit /b 1
+    )
+)
+
+echo [INFO] Creating Python virtual environment for Data Emulator...
+pushd "%EMULATOR_DIR%"
+python -m venv .venv
+if errorlevel 1 (
+    popd
+    echo [ERROR] Failed to create virtual environment
+    exit /b 1
+)
+echo [INFO] Installing Python dependencies...
+.venv\Scripts\pip.exe install -r requirements.txt
+if errorlevel 1 (
+    popd
+    echo [ERROR] Failed to install Python dependencies
+    exit /b 1
+)
+popd
+echo [OK] Data Emulator Python dependencies installed
+
+:python_deps_ok
 exit /b 0
 
 REM ==============================================================================

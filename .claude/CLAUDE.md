@@ -145,7 +145,7 @@ Adds endpoint-based entity reporting with realistic measurement simulation.
 
 | Project | Port | Tech | Start |
 |---------|------|------|-------|
-| disco_data_emulator (Server) | 8765 | Express + TypeScript | `cd disco_data_emulator && npm start` |
+| disco_data_emulator (Server) | 8766 | Flask + Python | `cd disco_data_emulator && ./start.sh` |
 | disco_live_world_client_ui (Client) | 3000 | React 19 + Vite | `cd disco_live_world_client_ui && npm run dev` |
 
 ## Cross-Project Changes
