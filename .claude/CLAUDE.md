@@ -13,6 +13,7 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 1. **NEVER commit or push without explicit user permission** - Always wait for "commit" or "push" command
 2. **Visual Testing is MANDATORY** for UI changes - TypeScript compilation is not enough
 3. **Git submodules** - Always use full paths: `cd /full/path/to/submodule && git command`
+   - **After `git pull` or `git checkout <branch>`**, ALWAYS run `git submodule update --init --recursive` from the workspace root to sync submodules to the commit the parent repo expects. Skipping this leaves stale/wrong code in submodule directories.
 4. **Pre-commit gate** - When user says "commit" or "push", FIRST check if completion-checklist has run this session. If not, invoke it before committing.
 5. **Browser screenshots** - Always resize Chrome to 900x600 before taking screenshots. Never use fullscreen.
 6. **NEVER invent API endpoints** - See "API Realism Rule" below. Every endpoint on the surrogate server and every API call from the emulator/client MUST correspond to a real DiSCO API endpoint documented in the JavaScript client reference.

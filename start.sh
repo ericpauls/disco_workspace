@@ -158,6 +158,55 @@ check_and_clean_ports() {
 }
 
 # ==============================================================================
+# SUBMODULE MANAGEMENT
+# ==============================================================================
+
+check_submodules() {
+    # Only relevant inside a git repo
+    if [[ ! -d "${SCRIPT_DIR}/.git" ]]; then
+        return 0
+    fi
+
+    print_header "Checking Git Submodules"
+
+    local submodules=("disco_data_emulator" "disco_live_world_client_ui" "disco_surrogate_server")
+    local needs_init=false
+
+    for sub in "${submodules[@]}"; do
+        local sub_dir="${SCRIPT_DIR}/${sub}"
+        # A properly initialized submodule has a .git file (not directory) pointing to parent
+        if [[ ! -f "${sub_dir}/.git" ]] && [[ ! -d "${sub_dir}/.git" ]]; then
+            print_warning "Submodule '${sub}' is not initialized"
+            needs_init=true
+        elif [[ -z "$(ls -A "${sub_dir}" 2>/dev/null)" ]]; then
+            print_warning "Submodule '${sub}' directory is empty"
+            needs_init=true
+        else
+            print_success "Submodule '${sub}' is initialized"
+        fi
+    done
+
+    if [[ "$needs_init" == true ]]; then
+        echo ""
+        echo -e "${YELLOW}Some git submodules need to be initialized.${NC}"
+        echo -e "${YELLOW}This is normal for a first-time clone or after switching branches.${NC}"
+        read -p "Run 'git submodule update --init --recursive'? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            print_info "Initializing submodules..."
+            if (cd "$SCRIPT_DIR" && git submodule update --init --recursive); then
+                print_success "Submodules initialized successfully"
+            else
+                print_error "Failed to initialize submodules"
+                exit 1
+            fi
+        else
+            print_warning "Continuing without submodule init - some services may fail to start"
+        fi
+    fi
+}
+
+# ==============================================================================
 # DEPENDENCY MANAGEMENT
 # ==============================================================================
 
@@ -207,8 +256,57 @@ install_python_dependencies() {
     fi
 }
 
+check_node_version() {
+    local min_major=18
+    local recommended="25.2.1"
+
+    if ! command -v node &>/dev/null; then
+        print_error "Node.js is not installed or not in PATH"
+        print_info "Install Node.js ${min_major}+ from https://nodejs.org/"
+        exit 1
+    fi
+
+    local node_version
+    node_version=$(node --version 2>/dev/null | sed 's/^v//')
+    local node_major
+    node_major=$(echo "$node_version" | cut -d. -f1)
+
+    if [[ "$node_major" -lt "$min_major" ]]; then
+        print_error "Node.js ${node_version} is too old (minimum: ${min_major}.x)"
+        print_info "Install Node.js ${min_major}+ from https://nodejs.org/"
+        exit 1
+    fi
+
+    # Compare against recommended version (used in package.json engines)
+    local rec_major rec_minor rec_patch cur_minor cur_patch
+    rec_major=$(echo "$recommended" | cut -d. -f1)
+    rec_minor=$(echo "$recommended" | cut -d. -f2)
+    rec_patch=$(echo "$recommended" | cut -d. -f3)
+    cur_minor=$(echo "$node_version" | cut -d. -f2)
+    cur_patch=$(echo "$node_version" | cut -d. -f3)
+
+    local below_recommended=false
+    if [[ "$node_major" -lt "$rec_major" ]]; then
+        below_recommended=true
+    elif [[ "$node_major" -eq "$rec_major" ]] && [[ "$cur_minor" -lt "$rec_minor" ]]; then
+        below_recommended=true
+    elif [[ "$node_major" -eq "$rec_major" ]] && [[ "$cur_minor" -eq "$rec_minor" ]] && [[ "$cur_patch" -lt "$rec_patch" ]]; then
+        below_recommended=true
+    fi
+
+    if [[ "$below_recommended" == true ]]; then
+        print_warning "Node.js ${node_version} (recommended: ${recommended}+)"
+        print_info "npm may show EBADENGINE warnings — this is usually fine"
+    else
+        print_success "Node.js ${node_version}"
+    fi
+}
+
 check_dependencies() {
     print_header "Checking Dependencies"
+
+    # --- Check Node.js version ---
+    check_node_version
 
     # --- Check that all project directories exist ---
     local all_dirs=(
@@ -322,6 +420,8 @@ check_dependencies() {
             print_info "Force install: Data Emulator (Python)"
         else
             print_warning "Data Emulator Python environment missing (.venv)"
+            print_info "First-time setup: The emulator runs on Python/Flask and needs a virtual environment."
+            print_info "This will create .venv/ and install: flask, flask-cors, requests, shapely"
         fi
 
         if [[ "$SKIP_INSTALL" == true ]]; then
@@ -578,6 +678,7 @@ main() {
 
     trap cleanup SIGINT SIGTERM
 
+    check_submodules
     check_dependencies
     check_and_clean_ports
 
