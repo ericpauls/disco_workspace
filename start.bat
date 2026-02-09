@@ -100,12 +100,6 @@ echo ========================================
 echo      DiSCO Workspace Launcher
 echo ========================================
 echo.
-echo   Dashboard:  :%DASHBOARD_PORT%
-echo   Server:     :%SERVER_PORT%
-echo   Emulator:   :%EMULATOR_PORT%
-echo   Client:     :%CLIENT_PORT%
-echo   Scenario:   %SCENARIO%
-echo.
 
 REM Pre-flight checks
 call :check_dependencies
@@ -113,6 +107,14 @@ if errorlevel 1 goto :error_exit
 
 call :check_and_clean_ports
 if errorlevel 1 goto :error_exit
+
+echo.
+echo   Dashboard:  :!DASHBOARD_PORT!
+echo   Server:     :!SERVER_PORT!
+echo   Emulator:   :!EMULATOR_PORT!
+echo   Client:     :!CLIENT_PORT!
+echo   Scenario:   %SCENARIO%
+echo.
 
 REM Start dashboard
 call :start_dashboard
@@ -434,78 +436,37 @@ echo.
 echo === Checking Ports ===
 echo.
 
-set "ANY_IN_USE=false"
-
-REM Check all 4 ports
-for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
-    call :check_port %%P
-    if "!PORT_IN_USE!"=="true" (
-        set "ANY_IN_USE=true"
-        echo [WARN] Port %%P is in use
-    ) else (
-        echo [OK] Port %%P is available
-    )
-)
-
-if not "!ANY_IN_USE!"=="true" goto :ports_done
+REM Auto-find available ports for any that are occupied
+call :find_available_port %DASHBOARD_PORT% DASHBOARD_PORT "Dashboard"
+call :find_available_port %SERVER_PORT% SERVER_PORT "Server"
+call :find_available_port %EMULATOR_PORT% EMULATOR_PORT "Emulator"
+call :find_available_port %CLIENT_PORT% CLIENT_PORT "Client"
 
 echo.
-echo [WARN] One or more ports are already in use.
-echo [INFO] This may be a previous DiSCO session or another application.
-echo.
-echo   Options:
-echo     Y = Try to stop the existing processes (may require admin)
-echo     N = Continue anyway (services on occupied ports will fail to start)
-echo     Q = Quit
-echo.
-set /p "REPLY=What would you like to do? (Y/n/q): "
-if /i "!REPLY!"=="q" (
-    echo [INFO] Exiting.
-    exit /b 1
-)
-if /i "!REPLY!"=="n" (
-    echo [INFO] Continuing with ports as-is...
-    goto :ports_done
-)
+echo [INFO] Using ports: Dashboard=!DASHBOARD_PORT!, Server=!SERVER_PORT!, Emulator=!EMULATOR_PORT!, Client=!CLIENT_PORT!
 
-echo [INFO] Attempting to stop existing processes...
-set "KILL_FAILED=false"
-for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
-    call :check_port %%P
-    if "!PORT_IN_USE!"=="true" call :kill_port %%P
-)
-
-if "!KILL_FAILED!"=="true" (
-    echo.
-    echo [WARN] Could not stop some processes. You may need to close them manually
-    echo        or run this script as Administrator.
-    echo.
-    set /p "REPLY=Continue anyway? (Y/n): "
-    if /i "!REPLY!"=="n" (
-        exit /b 1
-    )
-)
-
-:ports_done
 exit /b 0
 
-:check_port
-set "PORT_IN_USE=false"
-netstat -ano | findstr /r ":%~1 .*LISTENING" >nul 2>&1
-if not errorlevel 1 set "PORT_IN_USE=true"
-goto :eof
+:find_available_port
+REM Usage: call :find_available_port <starting_port> <var_name> <display_name>
+REM Checks if starting_port is free. If not, increments until a free port is found.
+REM Sets the variable named by %~2 to the available port.
+set "FAP_PORT=%~1"
 
-:kill_port
-REM Try to stop process on port (may fail without admin rights)
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr /r ":%~1 .*LISTENING" 2^>nul') do (
-    echo [INFO] Stopping process on port %~1 (PID: %%a)...
-    taskkill /F /PID %%a >nul 2>&1
-    if errorlevel 1 (
-        echo [WARN] Could not stop process on port %~1 (PID: %%a) - access denied?
-        set "KILL_FAILED=true"
-    )
+:fap_loop
+netstat -ano | findstr /r ":!FAP_PORT! .*LISTENING" >nul 2>&1
+if not errorlevel 1 (
+    echo [WARN] Port !FAP_PORT! is in use ^(%~3^) - trying next...
+    set /a "FAP_PORT+=1"
+    goto :fap_loop
 )
-timeout /t 1 /nobreak >nul 2>&1
+
+if "!FAP_PORT!"=="%~1" (
+    echo [OK] Port !FAP_PORT! is available ^(%~3^)
+) else (
+    echo [OK] Port !FAP_PORT! is available ^(%~3, reassigned from %~1^)
+)
+set "%~2=!FAP_PORT!"
 goto :eof
 
 REM ==============================================================================
@@ -519,8 +480,8 @@ echo.
 
 echo [INFO] Starting DiSCO orchestration dashboard on port %DASHBOARD_PORT%...
 
-REM Start dashboard in a new window
-start "DiSCO Dashboard" /D "%DASHBOARD_DIR%" cmd /c "set DASHBOARD_PORT=%DASHBOARD_PORT% && npx tsx server.ts"
+REM Start dashboard in a new window (pass all port env vars so dashboard can propagate to children)
+start "DiSCO Dashboard" /D "%DASHBOARD_DIR%" cmd /c "set DASHBOARD_PORT=!DASHBOARD_PORT! && set SERVER_PORT=!SERVER_PORT! && set EMULATOR_PORT=!EMULATOR_PORT! && set CLIENT_PORT=!CLIENT_PORT! && npx tsx server.ts"
 
 REM Wait for dashboard to be ready
 echo [INFO] Waiting for dashboard to be ready...
@@ -611,7 +572,7 @@ if not "%OPEN_BROWSER%"=="true" goto :eof
 
 echo [INFO] Opening browser...
 
-set "DASHBOARD_URL=http://127.0.0.1:%DASHBOARD_PORT%"
+set "DASHBOARD_URL=http://127.0.0.1:!DASHBOARD_PORT!"
 
 REM Open dashboard in default browser
 start "" "%DASHBOARD_URL%"
@@ -626,12 +587,12 @@ REM ============================================================================
 echo.
 echo === DiSCO Workspace Running ===
 echo.
-echo   Dashboard:  http://127.0.0.1:%DASHBOARD_PORT%
-echo   Server:     http://127.0.0.1:%SERVER_PORT%/apidocs
-echo   Emulator:   http://127.0.0.1:%EMULATOR_PORT%/api
-echo   Client:     http://127.0.0.1:%CLIENT_PORT%
+echo   Dashboard:  http://127.0.0.1:!DASHBOARD_PORT!
+echo   Server:     http://127.0.0.1:!SERVER_PORT!/apidocs
+echo   Emulator:   http://127.0.0.1:!EMULATOR_PORT!/api
+echo   Client:     http://127.0.0.1:!CLIENT_PORT!
 echo.
-echo   Server Dashboard:  http://127.0.0.1:%SERVER_PORT%/dashboard
+echo   Server Dashboard:  http://127.0.0.1:!SERVER_PORT!/dashboard
 echo.
 goto :eof
 

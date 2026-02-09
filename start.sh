@@ -512,7 +512,11 @@ start_dashboard() {
 
     (
         cd "$DASHBOARD_DIR"
-        DASHBOARD_PORT=$DASHBOARD_PORT npx tsx server.ts
+        DASHBOARD_PORT=$DASHBOARD_PORT \
+        SERVER_PORT=$SERVER_PORT \
+        EMULATOR_PORT=$EMULATOR_PORT \
+        CLIENT_PORT=$CLIENT_PORT \
+        npx tsx server.ts
     ) &
     DASHBOARD_PID=$!
 

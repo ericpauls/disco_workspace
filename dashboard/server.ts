@@ -11,6 +11,11 @@ const workspaceRoot = path.resolve(__dirname, '..');
 const app = express();
 const PORT = process.env.DASHBOARD_PORT || 8880;
 
+// Read child service ports from environment (set by start scripts) with defaults
+const SERVER_PORT = parseInt(process.env.SERVER_PORT || '8765');
+const EMULATOR_PORT = parseInt(process.env.EMULATOR_PORT || '8766');
+const CLIENT_PORT = parseInt(process.env.CLIENT_PORT || '3000');
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -49,31 +54,32 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
   server: {
     name: 'server',
     displayName: 'Surrogate Server',
-    port: 8765,
+    port: SERVER_PORT,
     cwd: path.join(workspaceRoot, 'disco_surrogate_server'),
     command: 'npx',
     args: ['tsx', 'server.ts'],
-    healthUrl: 'http://localhost:8765/apidocs/health',
-    dashboardUrl: 'http://localhost:8765/dashboard'
+    healthUrl: `http://localhost:${SERVER_PORT}/apidocs/health`,
+    dashboardUrl: `http://localhost:${SERVER_PORT}/dashboard`
   },
   emulator: {
     name: 'emulator',
     displayName: 'Data Emulator',
-    port: 8766,
+    port: EMULATOR_PORT,
     cwd: path.join(workspaceRoot, 'disco_data_emulator'),
     command: path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
-    args: ['-m', 'endpoint_emulator.emulator_server'],
-    healthUrl: 'http://localhost:8766/api/health'
+    args: ['-m', 'endpoint_emulator.emulator_server',
+           '--target-server', `http://localhost:${SERVER_PORT}`],
+    healthUrl: `http://localhost:${EMULATOR_PORT}/api/health`
   },
   client: {
     name: 'client',
     displayName: 'Client UI',
-    port: 3000,
+    port: CLIENT_PORT,
     cwd: path.join(workspaceRoot, 'disco_live_world_client_ui'),
     command: 'npm',
     args: ['run', 'dev'],
-    healthUrl: 'http://localhost:3000',
-    appUrl: 'http://localhost:3000'
+    healthUrl: `http://localhost:${CLIENT_PORT}`,
+    appUrl: `http://localhost:${CLIENT_PORT}`
   }
 };
 
@@ -218,7 +224,16 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
     const childProcess = spawn(config.command, config.args, {
       cwd: config.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '0', PYTHONPATH: config.cwd }
+      env: {
+        ...process.env,
+        FORCE_COLOR: '0',
+        PYTHONPATH: config.cwd,
+        PORT: String(config.port),
+        // Client needs to know the server URL for API calls
+        ...(serviceName === 'client' ? {
+          VITE_DISCO_API_URL: `http://127.0.0.1:${SERVER_PORT}/apidocs`,
+        } : {}),
+      }
     });
 
     service.process = childProcess;
