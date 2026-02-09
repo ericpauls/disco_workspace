@@ -9,7 +9,7 @@ REM   - Surrogate Server (port 8765) - API server + data stores
 REM   - Data Emulator (port 8766) - Scenario simulation
 REM   - Client UI (port 3000) - React visualization
 REM
-REM   The dashboard (port 8080) auto-starts all services and provides a web UI
+REM   The dashboard (port 8880) auto-starts all services and provides a web UI
 REM   for monitoring and controlling the workspace.
 REM
 REM USAGE:
@@ -31,7 +31,7 @@ REM ============================================================================
 REM CONFIGURATION DEFAULTS
 REM ==============================================================================
 
-set "DASHBOARD_PORT=8080"
+set "DASHBOARD_PORT=8880"
 set "SERVER_PORT=8765"
 set "EMULATOR_PORT=8766"
 set "CLIENT_PORT=3000"
@@ -337,7 +337,7 @@ if "%CLIENT_NEEDS_INSTALL%"=="true" (
 :dependencies_ok
 
 REM --- Check Python dependencies for Data Emulator ---
-if not "%EMULATOR_PYTHON_NEEDS_INSTALL%"=="true" goto :python_deps_ok
+if not "%EMULATOR_PYTHON_NEEDS_INSTALL%"=="true" goto :python_venv_exists
 
 echo.
 echo [INFO] Data Emulator requires Python. Checking...
@@ -381,6 +381,46 @@ if errorlevel 1 (
 )
 popd
 echo [OK] Data Emulator Python dependencies installed
+goto :python_deps_ok
+
+REM --- .venv exists: verify key packages are importable ---
+:python_venv_exists
+set "PYTHON_MISSING_PKGS="
+set "VENV_PYTHON=%EMULATOR_DIR%\.venv\Scripts\python.exe"
+for %%P in (flask flask_cors requests shapely) do (
+    "!VENV_PYTHON!" -c "import %%P" >nul 2>&1
+    if errorlevel 1 (
+        set "PYTHON_MISSING_PKGS=!PYTHON_MISSING_PKGS! %%P"
+    )
+)
+
+if "!PYTHON_MISSING_PKGS!"=="" (
+    echo [OK] Data Emulator Python dependencies verified
+    goto :python_deps_ok
+)
+
+echo [WARN] Data Emulator missing Python packages:!PYTHON_MISSING_PKGS!
+
+if "%SKIP_INSTALL%"=="true" (
+    echo [ERROR] Python packages missing and --skip-install was specified
+    exit /b 1
+)
+
+set /p "REPLY=Install from requirements.txt? (Y/n): "
+if /i "!REPLY!"=="n" (
+    echo [ERROR] Cannot proceed without Python dependencies
+    exit /b 1
+)
+
+pushd "%EMULATOR_DIR%"
+.venv\Scripts\pip.exe install -r requirements.txt
+if errorlevel 1 (
+    popd
+    echo [ERROR] Failed to install Python dependencies
+    exit /b 1
+)
+popd
+echo [OK] Data Emulator Python dependencies installed
 
 :python_deps_ok
 exit /b 0
@@ -407,14 +447,43 @@ for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
     )
 )
 
-if not "%ANY_IN_USE%"=="true" goto :ports_done
+if not "!ANY_IN_USE!"=="true" goto :ports_done
 
 echo.
-echo [INFO] Stopping existing processes for clean start...
+echo [WARN] One or more ports are already in use.
+echo [INFO] This may be a previous DiSCO session or another application.
+echo.
+echo   Options:
+echo     Y = Try to stop the existing processes (may require admin)
+echo     N = Continue anyway (services on occupied ports will fail to start)
+echo     Q = Quit
+echo.
+set /p "REPLY=What would you like to do? (Y/n/q): "
+if /i "!REPLY!"=="q" (
+    echo [INFO] Exiting.
+    exit /b 1
+)
+if /i "!REPLY!"=="n" (
+    echo [INFO] Continuing with ports as-is...
+    goto :ports_done
+)
 
+echo [INFO] Attempting to stop existing processes...
+set "KILL_FAILED=false"
 for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
     call :check_port %%P
     if "!PORT_IN_USE!"=="true" call :kill_port %%P
+)
+
+if "!KILL_FAILED!"=="true" (
+    echo.
+    echo [WARN] Could not stop some processes. You may need to close them manually
+    echo        or run this script as Administrator.
+    echo.
+    set /p "REPLY=Continue anyway? (Y/n): "
+    if /i "!REPLY!"=="n" (
+        exit /b 1
+    )
 )
 
 :ports_done
@@ -427,10 +496,14 @@ if not errorlevel 1 set "PORT_IN_USE=true"
 goto :eof
 
 :kill_port
-REM Find and kill process on port
+REM Try to stop process on port (may fail without admin rights)
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr /r ":%~1 .*LISTENING" 2^>nul') do (
-    echo [WARN] Killing process on port %~1 (PID: %%a)
+    echo [INFO] Stopping process on port %~1 (PID: %%a)...
     taskkill /F /PID %%a >nul 2>&1
+    if errorlevel 1 (
+        echo [WARN] Could not stop process on port %~1 (PID: %%a) - access denied?
+        set "KILL_FAILED=true"
+    )
 )
 timeout /t 1 /nobreak >nul 2>&1
 goto :eof

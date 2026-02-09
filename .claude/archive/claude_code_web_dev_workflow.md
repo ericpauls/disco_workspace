@@ -253,7 +253,7 @@ rm -rf ./screenshots/*.png 2>/dev/null
 mkdir -p ./screenshots
 
 # Capture all three DiSCO UIs
-capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:8880" ./screenshots/dashboard.png
 capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
 capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 
@@ -285,7 +285,7 @@ capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 sleep 10  # Wait for all services to start
 
 # 2. Verify services are healthy
-curl -s http://localhost:8080/api/health | python3 -m json.tool
+curl -s http://localhost:8880/api/health | python3 -m json.tool
 
 # 3. Resize Chrome window
 osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
@@ -296,7 +296,7 @@ echo "Found $ELEMENT_COUNT entity rows"
 
 # 5. Take screenshots using non-interactive window-ID capture
 mkdir -p ./screenshots
-capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:8880" ./screenshots/dashboard.png
 capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
 capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 
@@ -409,9 +409,9 @@ end tell'
 
 1. **Run `./start.sh`** to start all services
 2. **Wait for startup** - Give services time to initialize (~10 seconds)
-3. **Verify services are running**: `curl -s http://localhost:8080/api/health`
+3. **Verify services are running**: `curl -s http://localhost:8880/api/health`
 4. **Take screenshots** of ALL THREE using `capture_chrome_tab` (non-interactive):
-   - Orchestration Dashboard at http://localhost:8080
+   - Orchestration Dashboard at http://localhost:8880
    - Client UI at http://localhost:3000
    - Surrogate Server Dashboard at http://localhost:8765/dashboard
 5. **Read and inspect screenshots** using the Read tool - actually look at them
@@ -428,7 +428,7 @@ Run this BEFORE claiming any feature is complete:
 sleep 5
 
 # 2. Verify service health
-curl -s http://localhost:8080/api/health | python3 -m json.tool
+curl -s http://localhost:8880/api/health | python3 -m json.tool
 curl -s http://localhost:8765/apidocs/health | python3 -m json.tool
 curl -s http://localhost:8766/api/health | python3 -m json.tool
 
@@ -440,7 +440,7 @@ osascript -e 'tell application "Google Chrome" to set bounds of front window to 
 
 # 5. Capture all three UIs (non-interactive, no user clicks needed)
 mkdir -p ./screenshots
-capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:8880" ./screenshots/dashboard.png
 capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
 capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 

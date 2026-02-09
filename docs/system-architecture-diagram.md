@@ -30,7 +30,7 @@ flowchart LR
     end
 
     ui["&nbsp;&nbsp;Client :3000&nbsp;&nbsp;"]
-    dash["&nbsp;&nbsp;Dashboard :8080&nbsp;&nbsp;"]
+    dash["&nbsp;&nbsp;Dashboard :8880&nbsp;&nbsp;"]
 
     eps -->|POST entity<br/>reports| ent
     eps -->|POST position<br/>reports| pos
@@ -72,7 +72,7 @@ flowchart LR
 
 | Component | Responsibility | Port |
 |-----------|---------------|------|
-| **Orchestration Dashboard** | Process management, config file selection, service monitoring, client stats display | 8080 |
+| **Orchestration Dashboard** | Process management, config file selection, service monitoring, client stats display | 8880 |
 | **Surrogate Server** | API serving, data stores (entities, positions, fused mappings, fused summaries, live world) | 8765 |
 | **Data Emulator** | JSON config loading, simulation engine, endpoint generation, report submission | 8766 |
 | **Client UI** | Visualization, user interaction, memory stats estimation, data clear | 3000 |
@@ -81,7 +81,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant D as Dashboard :8080
+    participant D as Dashboard :8880
     participant S as Server :8765
     participant E as Emulator :8766
     participant C as Client :3000

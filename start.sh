@@ -9,7 +9,7 @@
 #   - Data Emulator (port 8766) - Scenario simulation
 #   - Client UI (port 3000) - React visualization
 #
-#   The dashboard (port 8080) auto-starts all services and provides a web UI
+#   The dashboard (port 8880) auto-starts all services and provides a web UI
 #   for monitoring and controlling the workspace.
 #
 # USAGE:
@@ -30,7 +30,7 @@ set -euo pipefail
 # CONFIGURATION DEFAULTS
 # ==============================================================================
 
-DASHBOARD_PORT=8080
+DASHBOARD_PORT=8880
 SERVER_PORT=8765
 EMULATOR_PORT=8766
 CLIENT_PORT=3000
@@ -144,16 +144,46 @@ check_and_clean_ports() {
 
     if [[ "$any_in_use" == true ]]; then
         echo ""
-        print_info "Stopping existing processes for clean start..."
+        print_warning "One or more ports are already in use."
+        print_info "This may be a previous DiSCO session or another application."
+        echo ""
+        echo "  Options:"
+        echo "    Y = Try to stop the existing processes"
+        echo "    N = Continue anyway (services on occupied ports will fail to start)"
+        echo "    Q = Quit"
+        echo ""
+        read -p "  What would you like to do? (Y/n/q): " -n 1 -r
+        echo ""
 
-        for port in "${ports_to_check[@]}"; do
-            if is_port_in_use "$port"; then
-                if ! kill_process_on_port "$port"; then
-                    print_error "Cannot free port $port. Please close the application manually."
+        if [[ $REPLY =~ ^[Qq]$ ]]; then
+            print_info "Exiting."
+            exit 1
+        fi
+
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            print_info "Continuing with ports as-is..."
+        else
+            local kill_failed=false
+            for port in "${ports_to_check[@]}"; do
+                if is_port_in_use "$port"; then
+                    if ! kill_process_on_port "$port"; then
+                        kill_failed=true
+                        print_warning "Could not free port $port"
+                    fi
+                fi
+            done
+
+            if [[ "$kill_failed" == true ]]; then
+                echo ""
+                print_warning "Could not stop some processes. You may need to close them manually."
+                echo ""
+                read -p "  Continue anyway? (Y/n): " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Nn]$ ]]; then
                     exit 1
                 fi
             fi
-        done
+        fi
     fi
 }
 
