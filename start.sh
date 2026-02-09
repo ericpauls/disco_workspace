@@ -388,7 +388,7 @@ check_dependencies() {
     if has_python_dependencies "$EMULATOR_DIR" && [[ "$FORCE_INSTALL" != true ]]; then
         # Verify key packages are importable
         local missing_pkgs=""
-        for pkg in flask requests shapely; do
+        for pkg in flask flask_cors requests shapely; do
             if ! "${EMULATOR_DIR}/.venv/bin/python3" -c "import $pkg" 2>/dev/null; then
                 missing_pkgs="$missing_pkgs $pkg"
             fi
