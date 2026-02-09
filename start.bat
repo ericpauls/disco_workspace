@@ -447,11 +447,17 @@ echo.
 echo === Checking Ports ===
 echo.
 
+REM Snapshot netstat ONCE into a temp file (avoids re-running netstat per port)
+set "NETSTAT_TMP=%TEMP%\disco_netstat_%RANDOM%.txt"
+netstat -ano 2>nul | findstr /c:"LISTENING" > "!NETSTAT_TMP!" 2>nul
+
 REM Auto-find available ports for any that are occupied
 call :find_available_port %DASHBOARD_PORT% DASHBOARD_PORT "Dashboard"
 call :find_available_port %SERVER_PORT% SERVER_PORT "Server"
 call :find_available_port %EMULATOR_PORT% EMULATOR_PORT "Emulator"
 call :find_available_port %CLIENT_PORT% CLIENT_PORT "Client"
+
+del "!NETSTAT_TMP!" >nul 2>&1
 
 echo.
 echo [INFO] Using ports: Dashboard=!DASHBOARD_PORT!, Server=!SERVER_PORT!, Emulator=!EMULATOR_PORT!, Client=!CLIENT_PORT!
@@ -465,14 +471,9 @@ REM Sets the variable named by %~2 to the available port.
 set "FAP_PORT=%~1"
 
 :fap_loop
-REM Use findstr /c: for literal match of ":PORT " (trailing space prevents substring matches)
-REM Then filter for LISTENING to ensure it's a listening socket, not established
-set "FAP_FOUND=false"
-for /f "delims=" %%L in ('netstat -ano 2^>nul ^| findstr /c:"LISTENING"') do (
-    echo %%L | findstr /c:":!FAP_PORT! " >nul 2>&1
-    if not errorlevel 1 set "FAP_FOUND=true"
-)
-if "!FAP_FOUND!"=="true" (
+REM Single findstr against the cached netstat snapshot — no per-line loop needed
+findstr /c:":!FAP_PORT! " "!NETSTAT_TMP!" >nul 2>&1
+if not errorlevel 1 (
     echo [WARN] Port !FAP_PORT! is in use ^(%~3^) - trying next...
     set /a "FAP_PORT+=1"
     goto :fap_loop
