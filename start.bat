@@ -454,8 +454,14 @@ REM Sets the variable named by %~2 to the available port.
 set "FAP_PORT=%~1"
 
 :fap_loop
-netstat -ano | findstr /r ":!FAP_PORT! .*LISTENING" >nul 2>&1
-if not errorlevel 1 (
+REM Use findstr /c: for literal match of ":PORT " (trailing space prevents substring matches)
+REM Then filter for LISTENING to ensure it's a listening socket, not established
+set "FAP_FOUND=false"
+for /f "delims=" %%L in ('netstat -ano 2^>nul ^| findstr /c:"LISTENING"') do (
+    echo %%L | findstr /c:":!FAP_PORT! " >nul 2>&1
+    if not errorlevel 1 set "FAP_FOUND=true"
+)
+if "!FAP_FOUND!"=="true" (
     echo [WARN] Port !FAP_PORT! is in use ^(%~3^) - trying next...
     set /a "FAP_PORT+=1"
     goto :fap_loop
