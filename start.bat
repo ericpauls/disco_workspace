@@ -242,16 +242,25 @@ if "%FORCE_INSTALL%"=="true" (
 
 REM Check emulator dependencies (Python .venv)
 set "EMULATOR_PYTHON_NEEDS_INSTALL=false"
-if "%FORCE_INSTALL%"=="true" (
-    set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
-) else (
-    if exist "%EMULATOR_DIR%\.venv\Scripts\python.exe" (
-        echo [OK] Data Emulator Python environment found
-    ) else (
-        echo [WARN] Data Emulator Python environment missing (.venv)
-        set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
-    )
+if "%FORCE_INSTALL%"=="true" set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
+if "%FORCE_INSTALL%"=="true" goto :emulator_python_checked
+REM Check for .venv with python.exe (Windows) or python3 (macOS/Linux cross-platform .venv)
+if exist "%EMULATOR_DIR%\.venv\Scripts\python.exe" (
+    echo [OK] Data Emulator Python environment found
+    goto :emulator_python_checked
 )
+if exist "%EMULATOR_DIR%\.venv\Scripts\python3.exe" (
+    echo [OK] Data Emulator Python environment found
+    goto :emulator_python_checked
+)
+if exist "%EMULATOR_DIR%\.venv\bin\python3" (
+    echo [OK] Data Emulator Python environment found (Unix layout^)
+    goto :emulator_python_checked
+)
+echo [WARN] Data Emulator Python environment missing
+echo [DEBUG] Checked: %EMULATOR_DIR%\.venv\Scripts\python.exe
+set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
+:emulator_python_checked
 
 REM Check client dependencies
 if "%FORCE_INSTALL%"=="true" (
@@ -388,7 +397,9 @@ goto :python_deps_ok
 REM --- .venv exists: verify key packages are importable ---
 :python_venv_exists
 set "PYTHON_MISSING_PKGS="
+REM Find the venv python executable (could be python.exe or python3.exe)
 set "VENV_PYTHON=%EMULATOR_DIR%\.venv\Scripts\python.exe"
+if not exist "!VENV_PYTHON!" set "VENV_PYTHON=%EMULATOR_DIR%\.venv\Scripts\python3.exe"
 for %%P in (flask flask_cors requests shapely) do (
     "!VENV_PYTHON!" -c "import %%P" >nul 2>&1
     if errorlevel 1 (
