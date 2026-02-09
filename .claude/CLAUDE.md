@@ -8,6 +8,10 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 ./start.sh  # Starts both server (8765) and client (3000)
 ```
 
+## Project Notes & Context (CRITICAL)
+
+**This project is worked on from multiple machines.** ALL notes, context, development history, and memory files MUST be saved in this workspace's `.claude/` directory (e.g., `.claude/geolocation-aoa.md`). NEVER save project-related notes to `~/.claude/` (the per-machine Claude Code memory directory) — other Claude Code instances on other machines won't be able to see them. The `.claude/` folder in this repo is the single source of truth for project knowledge.
+
 ## Critical Rules
 
 1. **NEVER commit or push without explicit user permission** - Always wait for "commit" or "push" command

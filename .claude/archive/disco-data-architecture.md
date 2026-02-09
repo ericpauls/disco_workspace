@@ -98,13 +98,13 @@ All three get: group_uuid = "group-555"
 | `pulsedata_uuid` | UUID | Optional reference to associated pulse data |
 | `position` | Position | **Estimated location of the observed entity** (NOT the observer) |
 | `ellipse` | Ellipse | Position uncertainty bounds |
-| `frequency_range` | FrequencyRange | Measured RF frequency (min/max/avg) |
-| `pri_range` | PriRange | Measured pulse repetition interval |
-| `pulsewidth_range` | PwRange | Measured pulse width |
-| `amplitude_avg` | number | Average signal amplitude (dBm) |
-| `elnot` | string | ELNOT identifier |
-| `emitter_type` | string | RADAR, COMMUNICATIONS, JAMMER, MISSILE, etc. |
-| `modulation` | string | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
+| `frequency_range` | FrequencyRange \| null | Measured RF frequency (min/max/avg) |
+| `pri_range` | PriRange \| null | Measured pulse repetition interval |
+| `pulsewidth_range` | PwRange \| null | Measured pulse width |
+| `amplitude_avg` | number \| null | Average signal amplitude (dBm) |
+| `elnot` | string \| null | ELNOT identifier |
+| `emitter_type` | string \| null | RADAR, COMMUNICATIONS, JAMMER, MISSILE, etc. |
+| `modulation` | string \| null | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
 | `latest_timestamp` | integer | Unix timestamp (ms) |
 | `created_timestamp` | integer | Server creation time (ms) |
 | `observation_distance_km` | number \| null | Optional: Distance from observer to entity |
@@ -548,39 +548,41 @@ The ellipse represents the **1-sigma (68%) confidence region** for the position 
 - For TDOA, the major axis is perpendicular to the baseline between sensors
 - Orientation is measured in degrees from true north (0° = north, 90° = east)
 
-### 8.3 Measurement Model (for simulation)
+### 8.3 Measurement Model (Implemented — Enhanced Entity Model)
 
-To simulate entity reports from truth data, apply these noise models:
+The emulator uses a realistic AOA/DF sensor model. See `.claude/geolocation-aoa.md` for full technical details.
 
-**1. Line-of-Sight Check:**
-```typescript
-// Horizon calculation (simplified)
-horizon_km = 3.57 × √(altitude_m)
+**Per-tick pipeline** (`enhanced_measurement_model.py`):
+1. Compute true bearings from endpoint to all truth entities (spherical formula, vectorized)
+2. Compute distances and check range + radio horizon visibility
+3. Check field-of-view (off-boresight angle vs practical cutoff)
+4. Compute per-entity AOA sigma: `sigma = boresight_sigma / |cos(off_boresight)|` (1D linear DF array)
+5. Generate noisy bearing measurements: `measured = true + N(0, sigma)`
+6. Feed into per-entity TrackManager for accumulation and windowed geolocation
 
-// Check if target is visible
-distance_to_target <= horizon_from_observer + horizon_from_target
-```
+**Geolocation solver** (`geolocation.py`) — 3-pass pipeline:
+1. **WLS**: Linearized bearing-line intersection with density-diversity weighting
+2. **NLS**: Direct angular cost minimization (Nelder-Mead), eliminates Cartesian linearization bias
+3. **Parametric bootstrap**: Bias correction for limited angular diversity (< 80° spread)
 
-**2. Geolocation Noise Model:**
-```typescript
-interface GeoNoiseModel {
-  bearing_error_deg: number;      // 1-sigma AOA error (e.g., 2-5°)
-  range_error_percent: number;    // 1-sigma range error (e.g., 5-15%)
-  min_detection_amplitude: number; // dBm threshold
+**AOA sensor config:**
+```python
+aoa_sensor_config = {
+    'boresight_sigma_deg': 1.0,      # 1-sigma AOA error at boresight
+    'practical_cutoff_deg': 85.0,     # FOV practical limit
+    'fov_half_angle_deg': 90.0,       # Full FOV half-angle
 }
 ```
 
-**3. Signal Parameter Noise Model:**
-```typescript
-interface SignalNoiseModel {
-  frequency_error_mhz: number;    // 1-sigma (e.g., 0.5-5 MHz)
-  pri_error_us: number;           // 1-sigma (e.g., 1-10 μs)
-  pulsewidth_error_us: number;    // 1-sigma (e.g., 0.1-1 μs)
-  amplitude_error_db: number;     // 1-sigma (e.g., 2-5 dB)
-}
-```
+**Signal Parameter Noise Model** (`noise_model.py`):
+Gaussian noise applied to frequency, PRI, pulsewidth, and amplitude. Different endpoints have different noise characteristics via `sensor_config`.
 
-**Different endpoints should have different noise characteristics** to simulate varying sensor capabilities.
+**Correlation Modes** control UUID behavior and track management:
+| Mode | UUID Behavior | Observation Window | Track Timeout |
+|------|--------------|-------------------|---------------|
+| ALWAYS | Persistent per entity | 10 ticks | 120 ticks |
+| SOMETIMES | Persistent with probabilistic splits | 30 ticks | 60 ticks |
+| NEVER | Fresh UUID every window | 60 ticks | instant |
 
 ---
 

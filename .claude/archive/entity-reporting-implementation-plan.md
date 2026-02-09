@@ -4,13 +4,15 @@
 
 **Prerequisites**: Read [disco-data-architecture.md](disco-data-architecture.md) first to understand the data model.
 
-> **⚠️ IMPLEMENTATION STATUS (as of 2026-01-20):**
+> **⚠️ IMPLEMENTATION STATUS (as of 2026-02-09):**
 > - **Phase 1 (Architecture Documentation)**: ✓ COMPLETE
-> - **Phase 2-3 (Endpoints & Measurement Model)**: ✓ LARGELY COMPLETE - Entity Reports storage, Position Reports storage, endpoint simulation with realistic measurement noise
+> - **Phase 2-3 (Endpoints & Measurement Model)**: ✓ COMPLETE - Full AOA/DF sensor model with 3-pass solver (WLS → NLS → parametric bootstrap bias correction). Three correlation modes (ALWAYS/SOMETIMES/NEVER) with configurable per-endpoint parameters.
 > - **Phase 4 (Server APIs)**: ✓ IMPLEMENTED - APIs for entity reports and position reports exist
-> - **Phase 5 (Developer Dashboard)**: ✓ IMPLEMENTED - Orchestration dashboard (port 8080) with service management, scenario selection, log viewing
+> - **Phase 5 (Developer Dashboard)**: ✓ IMPLEMENTED - Orchestration dashboard (port 8080) with service management, scenario selection, log viewing. Emulator-level React dashboard (port 8766) for runtime AOA/tracking parameter tuning.
 > - **Phase 6 (Client UI Updates)**: ✓ IMPLEMENTED - Client has entity reports and position reports tables/views
-> - **Phase 7 (Test Scenarios)**: ✓ IMPLEMENTED - Multiple scenarios including EndpointTestScenario
+> - **Phase 7 (Test Scenarios)**: ✓ IMPLEMENTED - Multiple scenarios including fusion-prep (9 endpoints, 3 modes × 3 geometries) and debug-single (1 endpoint for SPG testing)
+>
+> **Enhanced Entity Model (Feb 2026)**: The measurement model now uses a realistic 1D linear DF array model with angle-of-arrival (AOA) observations, accumulated bearing tracks, and WLS+NLS+bootstrap geolocation solver. See `.claude/geolocation-aoa.md` for detailed technical notes.
 >
 > **Key Gap**: The fusion pipeline (correlation, summarization) is documented but not yet implemented. Entity reports are collected and stored, but not correlated or fused into the Live World Model.
 
