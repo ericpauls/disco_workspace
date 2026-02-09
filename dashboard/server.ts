@@ -66,7 +66,9 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     displayName: 'Data Emulator',
     port: EMULATOR_PORT,
     cwd: path.join(workspaceRoot, 'disco_data_emulator'),
-    command: path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
+    command: process.platform === 'win32'
+      ? path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'Scripts', 'python.exe')
+      : path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
     args: ['-m', 'endpoint_emulator.emulator_server',
            '--target-server', `http://localhost:${SERVER_PORT}`],
     healthUrl: `http://localhost:${EMULATOR_PORT}/api/health`
@@ -208,6 +210,7 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
     const childProcess = spawn(config.command, config.args, {
       cwd: config.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
       env: {
         ...process.env,
         FORCE_COLOR: '0',
