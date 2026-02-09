@@ -131,43 +131,31 @@ function addLog(serviceName: string, message: string): void {
 }
 
 // Kill ALL processes listening on a given port (handles duplicates, orphans, external starts)
+// NOTE: On Windows, start.bat already ensures ports are free before launching the dashboard,
+// and taskkill requires admin privileges — so we skip port-killing on Windows entirely.
 function killProcessesOnPort(port: number): number {
-  const platform = process.platform;
+  if (process.platform === 'win32') {
+    return 0; // Windows: start.bat already found free ports; taskkill needs admin
+  }
+
   let killed = 0;
 
   try {
-    let pids: number[] = [];
+    const pids: number[] = [];
 
-    if (platform === 'win32') {
-      // Windows: use netstat to find PIDs on the port
-      const output = execSync(
-        `netstat -ano | findstr /r ":${port} .*LISTENING"`,
-        { encoding: 'utf-8', timeout: 5000 }
-      );
-      for (const line of output.split('\n')) {
-        const parts = line.trim().split(/\s+/);
-        const pid = parseInt(parts[parts.length - 1]);
-        if (pid > 0 && !pids.includes(pid)) pids.push(pid);
-      }
-    } else {
-      // macOS/Linux: use lsof to find PIDs on the port
-      const output = execSync(
-        `lsof -ti :${port} -sTCP:LISTEN`,
-        { encoding: 'utf-8', timeout: 5000 }
-      );
-      for (const line of output.split('\n')) {
-        const pid = parseInt(line.trim());
-        if (pid > 0 && !pids.includes(pid)) pids.push(pid);
-      }
+    // macOS/Linux: use lsof to find PIDs on the port
+    const output = execSync(
+      `lsof -ti :${port} -sTCP:LISTEN`,
+      { encoding: 'utf-8', timeout: 5000 }
+    );
+    for (const line of output.split('\n')) {
+      const pid = parseInt(line.trim());
+      if (pid > 0 && !pids.includes(pid)) pids.push(pid);
     }
 
     for (const pid of pids) {
       try {
-        if (platform === 'win32') {
-          execSync(`taskkill /F /PID ${pid}`, { timeout: 5000 });
-        } else {
-          process.kill(pid, 'SIGTERM');
-        }
+        process.kill(pid, 'SIGTERM');
         killed++;
       } catch {
         // Process may have already exited
@@ -180,11 +168,7 @@ function killProcessesOnPort(port: number): number {
         for (const pid of pids) {
           try {
             process.kill(pid, 0); // Check if still alive
-            if (platform === 'win32') {
-              execSync(`taskkill /F /PID ${pid}`, { timeout: 5000 });
-            } else {
-              process.kill(pid, 'SIGKILL');
-            }
+            process.kill(pid, 'SIGKILL');
           } catch {
             // Already dead
           }
@@ -192,7 +176,7 @@ function killProcessesOnPort(port: number): number {
       }, 2000);
     }
   } catch {
-    // No processes found on port (lsof/netstat returns non-zero) - that's fine
+    // No processes found on port (lsof returns non-zero) - that's fine
   }
 
   return killed;
