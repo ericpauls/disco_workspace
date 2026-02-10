@@ -9,7 +9,12 @@ const __dirname = path.dirname(__filename);
 const workspaceRoot = path.resolve(__dirname, '..');
 
 const app = express();
-const PORT = process.env.DASHBOARD_PORT || 8080;
+const PORT = process.env.DASHBOARD_PORT || 8880;
+
+// Read child service ports from environment (set by start scripts) with defaults
+const SERVER_PORT = parseInt(process.env.SERVER_PORT || '8765');
+const EMULATOR_PORT = parseInt(process.env.EMULATOR_PORT || '8766');
+const CLIENT_PORT = parseInt(process.env.CLIENT_PORT || '3000');
 
 app.use(cors());
 app.use(express.json());
@@ -49,31 +54,34 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
   server: {
     name: 'server',
     displayName: 'Surrogate Server',
-    port: 8765,
+    port: SERVER_PORT,
     cwd: path.join(workspaceRoot, 'disco_surrogate_server'),
     command: 'npx',
     args: ['tsx', 'server.ts'],
-    healthUrl: 'http://localhost:8765/apidocs/health',
-    dashboardUrl: 'http://localhost:8765/dashboard'
+    healthUrl: `http://localhost:${SERVER_PORT}/apidocs/health`,
+    dashboardUrl: `http://localhost:${SERVER_PORT}/dashboard`
   },
   emulator: {
     name: 'emulator',
     displayName: 'Data Emulator',
-    port: 8766,
+    port: EMULATOR_PORT,
     cwd: path.join(workspaceRoot, 'disco_data_emulator'),
-    command: path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
-    args: ['-m', 'endpoint_emulator.emulator_server'],
-    healthUrl: 'http://localhost:8766/api/health'
+    command: process.platform === 'win32'
+      ? path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'Scripts', 'python.exe')
+      : path.join(workspaceRoot, 'disco_data_emulator', '.venv', 'bin', 'python3'),
+    args: ['-m', 'endpoint_emulator.emulator_server',
+           '--target-server', `http://localhost:${SERVER_PORT}`],
+    healthUrl: `http://localhost:${EMULATOR_PORT}/api/health`
   },
   client: {
     name: 'client',
     displayName: 'Client UI',
-    port: 3000,
+    port: CLIENT_PORT,
     cwd: path.join(workspaceRoot, 'disco_live_world_client_ui'),
     command: 'npm',
     args: ['run', 'dev'],
-    healthUrl: 'http://localhost:3000',
-    appUrl: 'http://localhost:3000'
+    healthUrl: `http://localhost:${CLIENT_PORT}`,
+    appUrl: `http://localhost:${CLIENT_PORT}`
   }
 };
 
@@ -125,43 +133,31 @@ function addLog(serviceName: string, message: string): void {
 }
 
 // Kill ALL processes listening on a given port (handles duplicates, orphans, external starts)
+// NOTE: On Windows, start.bat already ensures ports are free before launching the dashboard,
+// and taskkill requires admin privileges — so we skip port-killing on Windows entirely.
 function killProcessesOnPort(port: number): number {
-  const platform = process.platform;
+  if (process.platform === 'win32') {
+    return 0; // Windows: start.bat already found free ports; taskkill needs admin
+  }
+
   let killed = 0;
 
   try {
-    let pids: number[] = [];
+    const pids: number[] = [];
 
-    if (platform === 'win32') {
-      // Windows: use netstat to find PIDs on the port
-      const output = execSync(
-        `netstat -ano | findstr /r ":${port} .*LISTENING"`,
-        { encoding: 'utf-8', timeout: 5000 }
-      );
-      for (const line of output.split('\n')) {
-        const parts = line.trim().split(/\s+/);
-        const pid = parseInt(parts[parts.length - 1]);
-        if (pid > 0 && !pids.includes(pid)) pids.push(pid);
-      }
-    } else {
-      // macOS/Linux: use lsof to find PIDs on the port
-      const output = execSync(
-        `lsof -ti :${port} -sTCP:LISTEN`,
-        { encoding: 'utf-8', timeout: 5000 }
-      );
-      for (const line of output.split('\n')) {
-        const pid = parseInt(line.trim());
-        if (pid > 0 && !pids.includes(pid)) pids.push(pid);
-      }
+    // macOS/Linux: use lsof to find PIDs on the port
+    const output = execSync(
+      `lsof -ti :${port} -sTCP:LISTEN`,
+      { encoding: 'utf-8', timeout: 5000 }
+    );
+    for (const line of output.split('\n')) {
+      const pid = parseInt(line.trim());
+      if (pid > 0 && !pids.includes(pid)) pids.push(pid);
     }
 
     for (const pid of pids) {
       try {
-        if (platform === 'win32') {
-          execSync(`taskkill /F /PID ${pid}`, { timeout: 5000 });
-        } else {
-          process.kill(pid, 'SIGTERM');
-        }
+        process.kill(pid, 'SIGTERM');
         killed++;
       } catch {
         // Process may have already exited
@@ -174,11 +170,7 @@ function killProcessesOnPort(port: number): number {
         for (const pid of pids) {
           try {
             process.kill(pid, 0); // Check if still alive
-            if (platform === 'win32') {
-              execSync(`taskkill /F /PID ${pid}`, { timeout: 5000 });
-            } else {
-              process.kill(pid, 'SIGKILL');
-            }
+            process.kill(pid, 'SIGKILL');
           } catch {
             // Already dead
           }
@@ -186,7 +178,7 @@ function killProcessesOnPort(port: number): number {
       }, 2000);
     }
   } catch {
-    // No processes found on port (lsof/netstat returns non-zero) - that's fine
+    // No processes found on port (lsof returns non-zero) - that's fine
   }
 
   return killed;
@@ -218,7 +210,17 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
     const childProcess = spawn(config.command, config.args, {
       cwd: config.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '0', PYTHONPATH: config.cwd }
+      shell: process.platform === 'win32',
+      env: {
+        ...process.env,
+        FORCE_COLOR: '0',
+        PYTHONPATH: config.cwd,
+        PORT: String(config.port),
+        // Client needs to know the server URL for API calls
+        ...(serviceName === 'client' ? {
+          VITE_DISCO_API_URL: `http://127.0.0.1:${SERVER_PORT}/apidocs`,
+        } : {}),
+      }
     });
 
     service.process = childProcess;

@@ -35,11 +35,11 @@ Combine results to get all modified/added files.
 Follow the complete verification workflow:
 
 1. Check if servers are running (curl health endpoints), if not run `./start.sh`
-   - `./start.sh` launches the orchestration dashboard (port 8080) which starts all other services
-   - ALL FOUR services must be healthy before proceeding: dashboard (8080), surrogate server (8765), emulator (8766), client UI (3000)
+   - `./start.sh` launches the orchestration dashboard (port 8880) which starts all other services
+   - ALL FOUR services must be healthy before proceeding: dashboard (8880), surrogate server (8765), emulator (8766), client UI (3000)
    - If any health check fails, do NOT proceed to screenshots — fix the issue first
 2. Ensure Chrome has tabs open for ALL THREE UIs:
-   - Orchestration Dashboard: http://localhost:8080
+   - Orchestration Dashboard: http://localhost:8880
    - Client UI: http://localhost:3000
    - Surrogate Server Dashboard: http://localhost:8765/dashboard
 3. Take screenshots of each UI using **non-interactive window-ID capture** (see below)
@@ -134,7 +134,7 @@ if let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindo
 # Usage — clean old screenshots BEFORE capturing, NEVER clean after
 rm -rf ./screenshots/*.png 2>/dev/null
 mkdir -p ./screenshots
-capture_chrome_tab "localhost:8080" ./screenshots/dashboard.png
+capture_chrome_tab "localhost:8880" ./screenshots/dashboard.png
 capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
 capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
 ```

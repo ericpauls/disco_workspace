@@ -104,9 +104,9 @@ All three get: group_uuid = "group-555"
 | `amplitude_avg` | number \| null | Average signal amplitude (dBm) |
 | `elnot` | string \| null | ELNOT identifier |
 | `emitter_type` | string \| null | RADAR, COMMUNICATIONS, JAMMER, MISSILE, etc. |
-| `modulation` | string \| null | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
+| `modulation_type` | string \| null | PULSED, PULSE_DOPPLER, CW, FHSS, etc. |
 | `latest_timestamp` | integer | Unix timestamp (ms) |
-| `created_timestamp` | integer | Server creation time (ms) |
+| `write_timestamp` | integer | Server write time (ms) |
 | `observation_distance_km` | number \| null | Optional: Distance from observer to entity |
 | `observation_bearing_deg` | number \| null | Optional: Bearing from observer to entity |
 
@@ -128,7 +128,7 @@ All three get: group_uuid = "group-555"
 | `speed` | number | Current speed |
 | `altitude_reference` | string | Altitude reference system |
 | `latest_timestamp` | integer | Unix timestamp (ms) |
-| `created_timestamp` | integer | Server creation time (ms) |
+| `write_timestamp` | integer | Server write time (ms) |
 
 ### 3.3 fusedEntityMapping **[API IMPLEMENTED — awaiting fusion app]**
 
@@ -483,7 +483,7 @@ amplitude_avg: number;   // Average signal amplitude (dBm)
 ### 7.5 Modulation Types
 
 ```typescript
-type Modulation =
+type ModulationType =
   | 'PULSED'        // Basic pulsed radar
   | 'PULSE_DOPPLER' // Modern radar with velocity measurement
   | 'CW'            // Continuous wave (missile seekers, illuminators)
@@ -644,7 +644,7 @@ POST   /apidocs/entities/batchInsert                      - Batch add (accepts b
 POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
 GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
          ?from_time=&to_time=                              - Filter by latest_timestamp range
-         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
 GET    /apidocs/entities/getByParams                      - Query by parameters
 GET    /apidocs/entities/getUuids                         - List UUIDs
@@ -667,7 +667,7 @@ POST   /apidocs/positionReports                           - Add new Position Rep
 POST   /apidocs/positionReports/batchInsert               - Batch add (accepts bare array or {reports:[]})
 GET    /apidocs/positionReports/getLatest                 - Get latest
          ?from_time=&to_time=                              - Filter by latest_timestamp range
-         ?from_write_time=&to_write_time=                  - Filter by created_timestamp range (cursor-based polling)
+         ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
 GET    /apidocs/positionReports/getByParams               - Query by parameters
 GET    /apidocs/positionReports/getUuids                  - List UUIDs

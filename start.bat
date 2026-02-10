@@ -9,7 +9,7 @@ REM   - Surrogate Server (port 8765) - API server + data stores
 REM   - Data Emulator (port 8766) - Scenario simulation
 REM   - Client UI (port 3000) - React visualization
 REM
-REM   The dashboard (port 8080) auto-starts all services and provides a web UI
+REM   The dashboard (port 8880) auto-starts all services and provides a web UI
 REM   for monitoring and controlling the workspace.
 REM
 REM USAGE:
@@ -31,7 +31,7 @@ REM ============================================================================
 REM CONFIGURATION DEFAULTS
 REM ==============================================================================
 
-set "DASHBOARD_PORT=8080"
+set "DASHBOARD_PORT=8880"
 set "SERVER_PORT=8765"
 set "EMULATOR_PORT=8766"
 set "CLIENT_PORT=3000"
@@ -100,12 +100,6 @@ echo ========================================
 echo      DiSCO Workspace Launcher
 echo ========================================
 echo.
-echo   Dashboard:  :%DASHBOARD_PORT%
-echo   Server:     :%SERVER_PORT%
-echo   Emulator:   :%EMULATOR_PORT%
-echo   Client:     :%CLIENT_PORT%
-echo   Scenario:   %SCENARIO%
-echo.
 
 REM Pre-flight checks
 call :check_dependencies
@@ -113,6 +107,14 @@ if errorlevel 1 goto :error_exit
 
 call :check_and_clean_ports
 if errorlevel 1 goto :error_exit
+
+echo.
+echo   Dashboard:  :!DASHBOARD_PORT!
+echo   Server:     :!SERVER_PORT!
+echo   Emulator:   :!EMULATOR_PORT!
+echo   Client:     :!CLIENT_PORT!
+echo   Scenario:   %SCENARIO%
+echo.
 
 REM Start dashboard
 call :start_dashboard
@@ -240,16 +242,25 @@ if "%FORCE_INSTALL%"=="true" (
 
 REM Check emulator dependencies (Python .venv)
 set "EMULATOR_PYTHON_NEEDS_INSTALL=false"
-if "%FORCE_INSTALL%"=="true" (
-    set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
-) else (
-    if exist "%EMULATOR_DIR%\.venv\Scripts\python.exe" (
-        echo [OK] Data Emulator Python environment found
-    ) else (
-        echo [WARN] Data Emulator Python environment missing (.venv)
-        set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
-    )
+if "%FORCE_INSTALL%"=="true" set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
+if "%FORCE_INSTALL%"=="true" goto :emulator_python_checked
+REM Check for .venv with python.exe (Windows) or python3 (macOS/Linux cross-platform .venv)
+if exist "%EMULATOR_DIR%\.venv\Scripts\python.exe" (
+    echo [OK] Data Emulator Python environment found
+    goto :emulator_python_checked
 )
+if exist "%EMULATOR_DIR%\.venv\Scripts\python3.exe" (
+    echo [OK] Data Emulator Python environment found
+    goto :emulator_python_checked
+)
+if exist "%EMULATOR_DIR%\.venv\bin\python3" (
+    echo [OK] Data Emulator Python environment found (Unix layout^)
+    goto :emulator_python_checked
+)
+echo [WARN] Data Emulator Python environment missing
+echo [DEBUG] Checked: %EMULATOR_DIR%\.venv\Scripts\python.exe
+set "EMULATOR_PYTHON_NEEDS_INSTALL=true"
+:emulator_python_checked
 
 REM Check client dependencies
 if "%FORCE_INSTALL%"=="true" (
@@ -337,7 +348,7 @@ if "%CLIENT_NEEDS_INSTALL%"=="true" (
 :dependencies_ok
 
 REM --- Check Python dependencies for Data Emulator ---
-if not "%EMULATOR_PYTHON_NEEDS_INSTALL%"=="true" goto :python_deps_ok
+if not "%EMULATOR_PYTHON_NEEDS_INSTALL%"=="true" goto :python_venv_exists
 
 echo.
 echo [INFO] Data Emulator requires Python. Checking...
@@ -381,6 +392,48 @@ if errorlevel 1 (
 )
 popd
 echo [OK] Data Emulator Python dependencies installed
+goto :python_deps_ok
+
+REM --- .venv exists: verify key packages are importable ---
+:python_venv_exists
+set "PYTHON_MISSING_PKGS="
+REM Find the venv python executable (could be python.exe or python3.exe)
+set "VENV_PYTHON=%EMULATOR_DIR%\.venv\Scripts\python.exe"
+if not exist "!VENV_PYTHON!" set "VENV_PYTHON=%EMULATOR_DIR%\.venv\Scripts\python3.exe"
+for %%P in (flask flask_cors requests shapely) do (
+    "!VENV_PYTHON!" -c "import %%P" >nul 2>&1
+    if errorlevel 1 (
+        set "PYTHON_MISSING_PKGS=!PYTHON_MISSING_PKGS! %%P"
+    )
+)
+
+if "!PYTHON_MISSING_PKGS!"=="" (
+    echo [OK] Data Emulator Python dependencies verified
+    goto :python_deps_ok
+)
+
+echo [WARN] Data Emulator missing Python packages:!PYTHON_MISSING_PKGS!
+
+if "%SKIP_INSTALL%"=="true" (
+    echo [ERROR] Python packages missing and --skip-install was specified
+    exit /b 1
+)
+
+set /p "REPLY=Install from requirements.txt? (Y/n): "
+if /i "!REPLY!"=="n" (
+    echo [ERROR] Cannot proceed without Python dependencies
+    exit /b 1
+)
+
+pushd "%EMULATOR_DIR%"
+.venv\Scripts\pip.exe install -r requirements.txt
+if errorlevel 1 (
+    popd
+    echo [ERROR] Failed to install Python dependencies
+    exit /b 1
+)
+popd
+echo [OK] Data Emulator Python dependencies installed
 
 :python_deps_ok
 exit /b 0
@@ -394,45 +447,44 @@ echo.
 echo === Checking Ports ===
 echo.
 
-set "ANY_IN_USE=false"
+REM Snapshot netstat ONCE into a temp file (avoids re-running netstat per port)
+set "NETSTAT_TMP=%TEMP%\disco_netstat_%RANDOM%.txt"
+netstat -ano 2>nul | findstr /c:"LISTENING" > "!NETSTAT_TMP!" 2>nul
 
-REM Check all 4 ports
-for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
-    call :check_port %%P
-    if "!PORT_IN_USE!"=="true" (
-        set "ANY_IN_USE=true"
-        echo [WARN] Port %%P is in use
-    ) else (
-        echo [OK] Port %%P is available
-    )
-)
+REM Auto-find available ports for any that are occupied
+call :find_available_port %DASHBOARD_PORT% DASHBOARD_PORT "Dashboard"
+call :find_available_port %SERVER_PORT% SERVER_PORT "Server"
+call :find_available_port %EMULATOR_PORT% EMULATOR_PORT "Emulator"
+call :find_available_port %CLIENT_PORT% CLIENT_PORT "Client"
 
-if not "%ANY_IN_USE%"=="true" goto :ports_done
+del "!NETSTAT_TMP!" >nul 2>&1
 
 echo.
-echo [INFO] Stopping existing processes for clean start...
+echo [INFO] Using ports: Dashboard=!DASHBOARD_PORT!, Server=!SERVER_PORT!, Emulator=!EMULATOR_PORT!, Client=!CLIENT_PORT!
 
-for %%P in (%DASHBOARD_PORT% %SERVER_PORT% %EMULATOR_PORT% %CLIENT_PORT%) do (
-    call :check_port %%P
-    if "!PORT_IN_USE!"=="true" call :kill_port %%P
-)
-
-:ports_done
 exit /b 0
 
-:check_port
-set "PORT_IN_USE=false"
-netstat -ano | findstr /r ":%~1 .*LISTENING" >nul 2>&1
-if not errorlevel 1 set "PORT_IN_USE=true"
-goto :eof
+:find_available_port
+REM Usage: call :find_available_port <starting_port> <var_name> <display_name>
+REM Checks if starting_port is free. If not, increments until a free port is found.
+REM Sets the variable named by %~2 to the available port.
+set "FAP_PORT=%~1"
 
-:kill_port
-REM Find and kill process on port
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr /r ":%~1 .*LISTENING" 2^>nul') do (
-    echo [WARN] Killing process on port %~1 (PID: %%a)
-    taskkill /F /PID %%a >nul 2>&1
+:fap_loop
+REM Single findstr against the cached netstat snapshot — no per-line loop needed
+findstr /c:":!FAP_PORT! " "!NETSTAT_TMP!" >nul 2>&1
+if not errorlevel 1 (
+    echo [WARN] Port !FAP_PORT! is in use ^(%~3^) - trying next...
+    set /a "FAP_PORT+=1"
+    goto :fap_loop
 )
-timeout /t 1 /nobreak >nul 2>&1
+
+if "!FAP_PORT!"=="%~1" (
+    echo [OK] Port !FAP_PORT! is available ^(%~3^)
+) else (
+    echo [OK] Port !FAP_PORT! is available ^(%~3, reassigned from %~1^)
+)
+set "%~2=!FAP_PORT!"
 goto :eof
 
 REM ==============================================================================
@@ -446,8 +498,8 @@ echo.
 
 echo [INFO] Starting DiSCO orchestration dashboard on port %DASHBOARD_PORT%...
 
-REM Start dashboard in a new window
-start "DiSCO Dashboard" /D "%DASHBOARD_DIR%" cmd /c "set DASHBOARD_PORT=%DASHBOARD_PORT% && npx tsx server.ts"
+REM Start dashboard in a new window (pass all port env vars so dashboard can propagate to children)
+start "DiSCO Dashboard" /D "%DASHBOARD_DIR%" cmd /c "set DASHBOARD_PORT=!DASHBOARD_PORT! && set SERVER_PORT=!SERVER_PORT! && set EMULATOR_PORT=!EMULATOR_PORT! && set CLIENT_PORT=!CLIENT_PORT! && npx tsx server.ts"
 
 REM Wait for dashboard to be ready
 echo [INFO] Waiting for dashboard to be ready...
@@ -538,7 +590,7 @@ if not "%OPEN_BROWSER%"=="true" goto :eof
 
 echo [INFO] Opening browser...
 
-set "DASHBOARD_URL=http://127.0.0.1:%DASHBOARD_PORT%"
+set "DASHBOARD_URL=http://127.0.0.1:!DASHBOARD_PORT!"
 
 REM Open dashboard in default browser
 start "" "%DASHBOARD_URL%"
@@ -553,12 +605,12 @@ REM ============================================================================
 echo.
 echo === DiSCO Workspace Running ===
 echo.
-echo   Dashboard:  http://127.0.0.1:%DASHBOARD_PORT%
-echo   Server:     http://127.0.0.1:%SERVER_PORT%/apidocs
-echo   Emulator:   http://127.0.0.1:%EMULATOR_PORT%/api
-echo   Client:     http://127.0.0.1:%CLIENT_PORT%
+echo   Dashboard:  http://127.0.0.1:!DASHBOARD_PORT!
+echo   Server:     http://127.0.0.1:!SERVER_PORT!/apidocs
+echo   Emulator:   http://127.0.0.1:!EMULATOR_PORT!/api
+echo   Client:     http://127.0.0.1:!CLIENT_PORT!
 echo.
-echo   Server Dashboard:  http://127.0.0.1:%SERVER_PORT%/dashboard
+echo   Server Dashboard:  http://127.0.0.1:!SERVER_PORT!/dashboard
 echo.
 goto :eof
 

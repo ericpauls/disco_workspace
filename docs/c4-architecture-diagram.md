@@ -54,7 +54,7 @@ flowchart LR
 
     subgraph disco["&nbsp;&nbsp;DiSCO Development Environment&nbsp;&nbsp;"]
         direction TB
-        dash["<b>Dashboard</b><br/><i>Express.js</i><br/>:8080"]
+        dash["<b>Dashboard</b><br/><i>Express.js</i><br/>:8880"]
         client["<b>Client UI</b><br/><i>React 19, Vite</i><br/>:3000"]
 
         subgraph server["&nbsp;&nbsp;Surrogate Server :8765&nbsp;&nbsp;"]
@@ -192,7 +192,7 @@ flowchart LR
 
     js_client["<b>JS API Client</b><br/><i>OpenAPI</i>"]
     server["<b>Server</b><br/><i>:8765</i>"]
-    dashboard["<b>Dashboard</b><br/><i>:8080</i>"]
+    dashboard["<b>Dashboard</b><br/><i>:8880</i>"]
 
     api_svc --> js_client
     js_client --> server
@@ -247,7 +247,7 @@ flowchart LR
     end
 
     server["<b>Surrogate Server</b><br/><i>:8765</i>"]
-    dashboard["<b>Dashboard</b><br/><i>:8080</i>"]
+    dashboard["<b>Dashboard</b><br/><i>:8880</i>"]
 
     endpoints -->|POST reports| server
     truth -->|POST/PUT| server
@@ -275,13 +275,13 @@ flowchart TB
         direction LR
 
         subgraph browser["Browser"]
-            dash_ui["<b>Dashboard</b><br/><i>localhost:8080</i>"]
+            dash_ui["<b>Dashboard</b><br/><i>localhost:8880</i>"]
             client_ui["<b>Client UI</b><br/><i>localhost:3000</i>"]
         end
 
         subgraph node["Node.js Processes"]
             direction TB
-            dash_srv["<b>Dashboard Server</b><br/><i>:8080 Process Mgmt</i>"]
+            dash_srv["<b>Dashboard Server</b><br/><i>:8880 Process Mgmt</i>"]
             express["<b>Surrogate Server</b><br/><i>:8765 API + SQLite</i>"]
             emu_srv["<b>Data Emulator</b><br/><i>:8766 Simulation</i>"]
             vite["<b>Vite Dev Server</b><br/><i>:3000 HMR</i>"]
@@ -326,7 +326,7 @@ flowchart TB
 
 ## Key Architectural Decisions
 
-1. **Three-Service Architecture**: Dashboard (8080) orchestrates Surrogate Server (8765), Data Emulator (8766), and Client UI (3000) as independent processes
+1. **Three-Service Architecture**: Dashboard (8880) orchestrates Surrogate Server (8765), Data Emulator (8766), and Client UI (3000) as independent processes
 
 2. **Emulator is Server-Agnostic**: The emulator POSTs reports to a configurable target URL, working with the surrogate server locally or a real DiSCO server remotely
 

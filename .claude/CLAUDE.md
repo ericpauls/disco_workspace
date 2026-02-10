@@ -222,11 +222,27 @@ Before implementing ANY API endpoint on the surrogate server or ANY outbound API
 2. **Verify the request/response format** matches the JavaScript client models in `javascript-client/src/model/`
 3. **Verify query parameter names** match (real DiSCO uses snake_case on the wire: `from_time`, `max_count`, `from_write_time`, etc.)
 
+### NEVER deviate from canonical field names
+
+All data model field names in entity reports, position reports, and other API objects **MUST exactly match** the canonical JavaScript client reference (`javascript-client/src/model/`). This applies to:
+
+- **Type definitions** (TypeScript interfaces, Python TypedDicts)
+- **Database columns** (surrogate server SQLite schema)
+- **Report construction** (emulator building reports)
+- **API responses** (surrogate server returning data)
+- **Client consumption** (UI parsing responses)
+
+**Common mistakes to avoid:**
+- `modulation` → MUST be `modulation_type` (matches `ModulationType` in canonical API)
+- `created_timestamp` → MUST be `write_timestamp` (every canonical DiSCO response uses `write_timestamp`)
+
+**Exception:** Emulator-internal fields not part of any DiSCO API (e.g., endpoint `created_timestamp` for internal state tracking) are fine — these never cross the API boundary.
+
 ### What this means in practice
 
 - **Surrogate server** (`disco_surrogate_server`): Only implement endpoints that exist in the real DiSCO API. The surrogate is a local mock of the real server — it must be API-compatible. Administrative endpoints for the surrogate itself (health, metrics, clearStores) are fine, but data API endpoints must match real DiSCO.
-- **Emulator** (`disco_data_emulator`): Only make outbound HTTP calls to endpoints that exist in the real DiSCO API. The emulator can be pointed at either the surrogate or a real DiSCO server, so it must use real API paths.
-- **Client UI** (`disco_live_world_client_ui`): Only call endpoints that exist in the real DiSCO API.
+- **Emulator** (`disco_data_emulator`): Only make outbound HTTP calls to endpoints that exist in the real DiSCO API. The emulator can be pointed at either the surrogate or a real DiSCO server, so it must use real API paths. **All report fields sent over the wire must use canonical DiSCO field names.**
+- **Client UI** (`disco_live_world_client_ui`): Only call endpoints that exist in the real DiSCO API. **All type definitions for API objects must use canonical field names so the client could work with a real DiSCO server.**
 
 ### If you need functionality that DiSCO doesn't provide
 
