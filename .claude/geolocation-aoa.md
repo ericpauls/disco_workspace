@@ -6,8 +6,10 @@
 `solve_wls_bearings()` runs a 3-pass pipeline for ALWAYS/SOMETIMES modes:
 
 1. **Pass 1 — WLS**: Linearized bearing-line intersection (Cartesian least squares). Fast initial estimate. Includes bearing-density diversity weighting (1/sqrt(N) per bin) for SPG scenarios.
-2. **Pass 2 — NLS**: Direct angular nonlinear least squares (Nelder-Mead). Minimizes angular residuals directly, avoiding Cartesian linearization bias. Seeded from WLS estimate.
-3. **Pass 3 — Parametric Bootstrap**: Bias correction for limited angular diversity. Generates 30 synthetic measurement sets from the NLS estimate, re-solves each with WLS+NLS, subtracts estimated bias. Only fires when bearing spread < 80°.
+2. **Pass 2 — NLS**: Direct angular nonlinear least squares (**BFGS with analytical Jacobian**, Numba JIT-compiled cost/gradient kernels). Minimizes angular residuals directly, avoiding Cartesian linearization bias. Seeded from WLS estimate. Falls back to Nelder-Mead if BFGS fails.
+3. **Pass 3 — Parametric Bootstrap**: Bias correction for limited angular diversity. Generates **15** synthetic measurement sets from the NLS estimate, re-solves each with WLS+NLS, subtracts estimated bias. Only fires when bearing spread < **60°**.
+
+Performance optimized (Feb 2026): 24× faster than original via BFGS + Numba JIT + ProcessPoolExecutor parallel entity solves + bootstrap tuning. See `.claude/solver-optimization.md` for full benchmarks.
 
 NEVER mode uses only Pass 1 (plain WLS, no diversity weighting).
 
