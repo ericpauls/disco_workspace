@@ -97,18 +97,18 @@ sequenceDiagram
         E->>E: Update entity positions
         E->>E: Run measurement model
 
-        E->>S: POST /apidocs/entities/batchInsert
-        E->>S: POST /apidocs/positionReports/batchInsert
-        E->>S: POST /apidocs/liveWorldModel (new)
-        E->>S: PUT /apidocs/liveWorldModel (updates)
+        E->>S: POST /api/v1/entities/batchInsert
+        E->>S: POST /api/v1/positionReports/batchInsert
+        E->>S: POST /api/v1/liveWorldModel (new)
+        E->>S: PUT /api/v1/liveWorldModel (updates)
     end
 
     loop Every 2s (Client Polling)
-        C->>S: GET /apidocs/liveWorldModel/getLatest
+        C->>S: GET /api/v1/liveWorldModel/getLatest
         S-->>C: Live world entities
-        C->>S: GET /apidocs/entities
+        C->>S: GET /api/v1/entities
         S-->>C: Entity reports
-        C->>S: GET /apidocs/positionReports
+        C->>S: GET /api/v1/positionReports
         S-->>C: Position reports
         C->>C: POST /api/client-stats/update (to Vite plugin)
     end

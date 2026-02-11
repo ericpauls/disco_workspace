@@ -620,7 +620,7 @@ show_status() {
     print_header "DiSCO Workspace Running"
 
     echo -e "  ${GREEN}Dashboard:${NC}  http://127.0.0.1:${DASHBOARD_PORT}"
-    echo -e "  ${GREEN}Server:${NC}     http://127.0.0.1:${SERVER_PORT}/apidocs"
+    echo -e "  ${GREEN}Server:${NC}     http://127.0.0.1:${SERVER_PORT}/api/v1"
     echo -e "  ${GREEN}Emulator:${NC}   http://127.0.0.1:${EMULATOR_PORT}/api"
     echo -e "  ${GREEN}Client:${NC}     http://127.0.0.1:${CLIENT_PORT}"
     echo ""

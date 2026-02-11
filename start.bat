@@ -606,7 +606,7 @@ echo.
 echo === DiSCO Workspace Running ===
 echo.
 echo   Dashboard:  http://127.0.0.1:!DASHBOARD_PORT!
-echo   Server:     http://127.0.0.1:!SERVER_PORT!/apidocs
+echo   Server:     http://127.0.0.1:!SERVER_PORT!/api/v1
 echo   Emulator:   http://127.0.0.1:!EMULATOR_PORT!/api
 echo   Client:     http://127.0.0.1:!CLIENT_PORT!
 echo.
