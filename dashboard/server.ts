@@ -58,7 +58,7 @@ const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     cwd: path.join(workspaceRoot, 'disco_surrogate_server'),
     command: 'npx',
     args: ['tsx', 'server.ts'],
-    healthUrl: `http://localhost:${SERVER_PORT}/apidocs/health`,
+    healthUrl: `http://localhost:${SERVER_PORT}/api/v1/health`,
     dashboardUrl: `http://localhost:${SERVER_PORT}/dashboard`
   },
   emulator: {
@@ -218,7 +218,7 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
         PORT: String(config.port),
         // Client needs to know the server URL for API calls
         ...(serviceName === 'client' ? {
-          VITE_DISCO_API_URL: `http://127.0.0.1:${SERVER_PORT}/apidocs`,
+          VITE_DISCO_API_URL: `http://127.0.0.1:${SERVER_PORT}/api/v1`,
         } : {}),
       }
     });

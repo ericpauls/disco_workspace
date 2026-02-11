@@ -72,6 +72,11 @@ const elements = {
   btnStartSim: document.getElementById('btn-start-sim'),
   btnStopSim: document.getElementById('btn-stop-sim'),
 
+  // Emulator auth token
+  emulatorAuthToken: document.getElementById('emulator-auth-token'),
+  emulatorAuthTokenStatus: document.getElementById('emulator-auth-token-status'),
+  btnSetAuthToken: document.getElementById('btn-set-auth-token'),
+
   // Flow diagram
   flowEmulator: document.getElementById('flow-emulator'),
   flowServer: document.getElementById('flow-server'),
@@ -247,7 +252,7 @@ async function fetchEmulatorSimStatus() {
 
 async function fetchServerMemory() {
   try {
-    const response = await fetch('http://localhost:8765/apidocs/server/memory');
+    const response = await fetch('http://localhost:8765/api/v1/server/memory');
     if (!response.ok) return null;
     return await response.json();
   } catch {
@@ -267,7 +272,7 @@ async function fetchEmulatorMemory() {
 
 async function clearDatabase() {
   try {
-    const response = await fetch('http://localhost:8765/apidocs/server/clearStores', { method: 'POST' });
+    const response = await fetch('http://localhost:8765/api/v1/server/clearStores', { method: 'POST' });
     return await response.json();
   } catch (error) {
     console.error('Error clearing database:', error);
@@ -319,6 +324,30 @@ async function setEmulatorTargetServer(targetServerUrl) {
     return await response.json();
   } catch (error) {
     console.error('Error setting emulator target:', error);
+    return null;
+  }
+}
+
+async function fetchEmulatorAuthToken() {
+  try {
+    const response = await fetch('http://localhost:8766/api/config/authToken');
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function setEmulatorAuthToken(authToken) {
+  try {
+    const response = await fetch('http://localhost:8766/api/config/authToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authToken })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error setting auth token:', error);
     return null;
   }
 }
@@ -612,6 +641,13 @@ async function refreshAll() {
         elements.emulatorTargetUrl.value = emConfig.targetServerUrl;
       }
     }
+    // Sync auth token input (skip if user is editing)
+    const tokenData = await fetchEmulatorAuthToken();
+    if (tokenData && tokenData.authToken) {
+      if (document.activeElement !== elements.emulatorAuthToken) {
+        elements.emulatorAuthToken.value = tokenData.authToken;
+      }
+    }
   } else {
     setText(elements.emulatorMemory, '-');
   }
@@ -815,6 +851,30 @@ elements.btnSetEmulatorTarget.addEventListener('click', async () => {
 
 elements.emulatorTargetUrl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') elements.btnSetEmulatorTarget.click();
+});
+
+// Auth token config
+elements.btnSetAuthToken.addEventListener('click', async () => {
+  const token = elements.emulatorAuthToken.value.trim();
+  if (!token) return;
+
+  elements.btnSetAuthToken.disabled = true;
+  elements.btnSetAuthToken.textContent = '...';
+
+  const result = await setEmulatorAuthToken(token);
+
+  elements.btnSetAuthToken.disabled = false;
+  elements.btnSetAuthToken.textContent = 'Set';
+
+  if (result && result.success) {
+    showConfigStatus(elements.emulatorAuthTokenStatus, 'Updated', true);
+  } else {
+    showConfigStatus(elements.emulatorAuthTokenStatus, result?.error || 'Failed', false);
+  }
+});
+
+elements.emulatorAuthToken.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') elements.btnSetAuthToken.click();
 });
 
 // Client server target config
