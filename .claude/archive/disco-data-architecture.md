@@ -745,6 +745,8 @@ POST   /api/simulation/pause                              - Pause simulation tic
 POST   /api/simulation/resume                             - Resume simulation tick loop
 GET    /api/config                                        - Get current config (target URL, config file)
 POST   /api/config/targetServer                           - Set target server URL
+GET    /api/config/authToken                              - Get current auth token
+POST   /api/config/authToken                              - Set auth token { authToken: "string" }
 ```
 
 ### 10.9 Endpoint Management (port 8766)
