@@ -130,10 +130,10 @@ After implementation:
    - Store in respective tables
 
 3. **API endpoints:**
-   - `/apidocs/entities/getLatest` - Returns latest entity reports
-   - `/apidocs/entities/getByParams` - Filter entity reports
-   - `/apidocs/positionReports/getLatest` - Returns latest position reports
-   - `/apidocs/positionReports/getByParams` - Filter position reports
+   - `/api/v1/entities/getLatest` - Returns latest entity reports
+   - `/api/v1/entities/getByParams` - Filter entity reports
+   - `/api/v1/positionReports/getLatest` - Returns latest position reports
+   - `/api/v1/positionReports/getByParams` - Filter position reports
 
 4. **Client UI:**
    - Three tabs: LIVE_WORLD, ENTITY_REPORTS, POSITION_REPORTS
@@ -479,12 +479,12 @@ class EntityStore {
 // In server.ts
 
 // Entity Reports
-app.get('/apidocs/entities/getLatest', (req, res) => {
+app.get('/api/v1/entities/getLatest', (req, res) => {
   const limit = parseInt(req.query.max_count as string) || 1000;
   res.json({ tasks: entityStore.getLatest(limit) });
 });
 
-app.get('/apidocs/entities/getByParams', (req, res) => {
+app.get('/api/v1/entities/getByParams', (req, res) => {
   const params = {
     source_payload_uuid: req.query.source_payload_uuid,
     start_time: req.query.start_time,
@@ -494,7 +494,7 @@ app.get('/apidocs/entities/getByParams', (req, res) => {
   res.json({ tasks: entityStore.getByParams(params) });
 });
 
-app.get('/apidocs/entities/:entity_msg_uuid', (req, res) => {
+app.get('/api/v1/entities/:entity_msg_uuid', (req, res) => {
   const entity = entityStore.getByUuid(req.params.entity_msg_uuid);
   if (entity) {
     res.json(entity);
@@ -504,7 +504,7 @@ app.get('/apidocs/entities/:entity_msg_uuid', (req, res) => {
 });
 
 // Position Reports (similar pattern)
-app.get('/apidocs/positionReports/getLatest', (req, res) => {
+app.get('/api/v1/positionReports/getLatest', (req, res) => {
   const limit = parseInt(req.query.max_count as string) || 1000;
   res.json({ tasks: positionStore.getLatest(limit) });
 });
@@ -578,7 +578,7 @@ function simulationTick(timestamp: number) {
 **Option A: Server-side endpoint + Client page**
 ```typescript
 // Server endpoint
-app.get('/apidocs/simulation/dashboard', (req, res) => {
+app.get('/api/v1/simulation/dashboard', (req, res) => {
   res.json({
     entityReportCount: entityStore.count(),
     positionReportCount: positionStore.count(),
@@ -587,17 +587,17 @@ app.get('/apidocs/simulation/dashboard', (req, res) => {
   });
 });
 
-app.post('/apidocs/simulation/pause', (req, res) => {
+app.post('/api/v1/simulation/pause', (req, res) => {
   simulationEngine.pause();
   res.json({ success: true });
 });
 
-app.post('/apidocs/simulation/resume', (req, res) => {
+app.post('/api/v1/simulation/resume', (req, res) => {
   simulationEngine.resume();
   res.json({ success: true });
 });
 
-app.post('/apidocs/simulation/clearEntities', (req, res) => {
+app.post('/api/v1/simulation/clearEntities', (req, res) => {
   entityStore.clear();
   res.json({ success: true });
 });
@@ -605,7 +605,7 @@ app.post('/apidocs/simulation/clearEntities', (req, res) => {
 
 **Option B: Extend existing /health endpoint**
 ```typescript
-app.get('/apidocs/health', (req, res) => {
+app.get('/api/v1/health', (req, res) => {
   res.json({
     status: 'healthy',
     simulation: {
@@ -905,7 +905,7 @@ src/
 ### 8.1 Server Health
 
 ```bash
-curl http://localhost:8765/apidocs/health | jq .
+curl http://localhost:8765/api/v1/health | jq .
 ```
 
 Expected: Server status with entity/position counts.
@@ -914,10 +914,10 @@ Expected: Server status with entity/position counts.
 
 ```bash
 # Get latest entity reports
-curl http://localhost:8765/apidocs/entities/getLatest | jq .
+curl http://localhost:8765/api/v1/entities/getLatest | jq .
 
 # Verify structure
-curl http://localhost:8765/apidocs/entities/getLatest | jq '.tasks[0] | keys'
+curl http://localhost:8765/api/v1/entities/getLatest | jq '.tasks[0] | keys'
 # Should include: entity_msg_uuid, source_entity_uuid, source_payload_uuid, position, etc.
 ```
 
@@ -925,10 +925,10 @@ curl http://localhost:8765/apidocs/entities/getLatest | jq '.tasks[0] | keys'
 
 ```bash
 # Get latest position reports
-curl http://localhost:8765/apidocs/positionReports/getLatest | jq .
+curl http://localhost:8765/api/v1/positionReports/getLatest | jq .
 
 # Verify structure
-curl http://localhost:8765/apidocs/positionReports/getLatest | jq '.tasks[0] | keys'
+curl http://localhost:8765/api/v1/positionReports/getLatest | jq '.tasks[0] | keys'
 # Should include: position_report_uuid, source_payload_uuid, position, etc.
 ```
 
@@ -944,7 +944,7 @@ curl http://localhost:8765/apidocs/positionReports/getLatest | jq '.tasks[0] | k
 
 ```bash
 # Monitor entity count over time
-watch -n 1 'curl -s http://localhost:8765/apidocs/health | jq .simulation.entityCount'
+watch -n 1 'curl -s http://localhost:8765/api/v1/health | jq .simulation.entityCount'
 ```
 
 Verify count stays under limit and old reports are purged.

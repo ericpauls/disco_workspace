@@ -639,102 +639,102 @@ The `group_uuid` enables critical data provenance:
 
 **✓ Implemented:**
 ```
-POST   /apidocs/entities                                  - Add new Entity Report
-POST   /apidocs/entities/batchInsert                      - Batch add (accepts bare array or {reports:[]})
-POST   /apidocs/entities/getBatch                         - Get batch by UUIDs
-GET    /apidocs/entities/getLatest                        - Get latest Entity Reports
+POST   /api/v1/entities                                  - Add new Entity Report
+POST   /api/v1/entities/batchInsert                      - Batch add (accepts bare array or {reports:[]})
+POST   /api/v1/entities/getBatch                         - Get batch by UUIDs
+GET    /api/v1/entities/getLatest                        - Get latest Entity Reports
          ?from_time=&to_time=                              - Filter by latest_timestamp range
          ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
-GET    /apidocs/entities/getByParams                      - Query by parameters
-GET    /apidocs/entities/getUuids                         - List UUIDs
-GET    /apidocs/entities/{entity_msg_uuid}                - Get by UUID
-DELETE /apidocs/entities/{entity_msg_uuid}                - Delete by UUID
+GET    /api/v1/entities/getByParams                      - Query by parameters
+GET    /api/v1/entities/getUuids                         - List UUIDs
+GET    /api/v1/entities/{entity_msg_uuid}                - Get by UUID
+DELETE /api/v1/entities/{entity_msg_uuid}                - Delete by UUID
 ```
 
 **[PLANNED]:**
 ```
-PUT    /apidocs/entities                                  - Update Entity Report
-GET    /apidocs/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
-GET    /apidocs/entities/getPositions                     - Query positions
+PUT    /api/v1/entities                                  - Update Entity Report
+GET    /api/v1/entities/getLatest/{source_entity_uuid}   - Latest by source UUID
+GET    /api/v1/entities/getPositions                     - Query positions
 ```
 
 ### 10.2 positionReports API (7 implemented, 3 planned)
 
 **✓ Implemented:**
 ```
-POST   /apidocs/positionReports                           - Add new Position Report
-POST   /apidocs/positionReports/batchInsert               - Batch add (accepts bare array or {reports:[]})
-GET    /apidocs/positionReports/getLatest                 - Get latest
+POST   /api/v1/positionReports                           - Add new Position Report
+POST   /api/v1/positionReports/batchInsert               - Batch add (accepts bare array or {reports:[]})
+GET    /api/v1/positionReports/getLatest                 - Get latest
          ?from_time=&to_time=                              - Filter by latest_timestamp range
          ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
-GET    /apidocs/positionReports/getByParams               - Query by parameters
-GET    /apidocs/positionReports/getUuids                  - List UUIDs
-GET    /apidocs/positionReports/{uuid}                    - Get by UUID
-DELETE /apidocs/positionReports/{uuid}                    - Delete by UUID
+GET    /api/v1/positionReports/getByParams               - Query by parameters
+GET    /api/v1/positionReports/getUuids                  - List UUIDs
+GET    /api/v1/positionReports/{uuid}                    - Get by UUID
+DELETE /api/v1/positionReports/{uuid}                    - Delete by UUID
 ```
 
 **[PLANNED]:**
 ```
-PUT    /apidocs/positionReports                           - Update Position Report
-POST   /apidocs/positionReports/getBatchBySource          - Get batch by source UUIDs
-GET    /apidocs/positionReports/getPositions              - Query positions
+PUT    /api/v1/positionReports                           - Update Position Report
+POST   /api/v1/positionReports/getBatchBySource          - Get batch by source UUIDs
+GET    /api/v1/positionReports/getPositions              - Query positions
 ```
 
 ### 10.3 fusedEntityMapping API **[IMPLEMENTED]**
 
 ```
-POST   /apidocs/fusedEntityMapping                        - Add new mapping
-PUT    /apidocs/fusedEntityMapping                        - Update mapping
-POST   /apidocs/fusedEntityMapping/batchInsert            - Batch add
-POST   /apidocs/fusedEntityMapping/getBatch               - Get batch by UUIDs
-GET    /apidocs/fusedEntityMapping/getByParams            - Query by parameters
-GET    /apidocs/fusedEntityMapping/getLatest              - Get latest
-GET    /apidocs/fusedEntityMapping/getUuids               - List UUIDs
-GET    /apidocs/fusedEntityMapping/{uuid}                 - Get by UUID
-DELETE /apidocs/fusedEntityMapping/{uuid}                 - Delete by UUID
+POST   /api/v1/fusedEntityMapping                        - Add new mapping
+PUT    /api/v1/fusedEntityMapping                        - Update mapping
+POST   /api/v1/fusedEntityMapping/batchInsert            - Batch add
+POST   /api/v1/fusedEntityMapping/getBatch               - Get batch by UUIDs
+GET    /api/v1/fusedEntityMapping/getByParams            - Query by parameters
+GET    /api/v1/fusedEntityMapping/getLatest              - Get latest
+GET    /api/v1/fusedEntityMapping/getUuids               - List UUIDs
+GET    /api/v1/fusedEntityMapping/{uuid}                 - Get by UUID
+DELETE /api/v1/fusedEntityMapping/{uuid}                 - Delete by UUID
 ```
 
 ### 10.4 fusedEntitySummary API **[IMPLEMENTED]**
 
 ```
-POST   /apidocs/fusedEntitySummary                        - Add new summary
-PUT    /apidocs/fusedEntitySummary                        - Update summary
-POST   /apidocs/fusedEntitySummary/batchInsert            - Batch add
-POST   /apidocs/fusedEntitySummary/getBatch               - Get batch by UUIDs
-GET    /apidocs/fusedEntitySummary/getByParams            - Query by parameters
-GET    /apidocs/fusedEntitySummary/getLatest              - Get latest
-GET    /apidocs/fusedEntitySummary/getUuids               - List UUIDs
-GET    /apidocs/fusedEntitySummary/{uuid}                 - Get by UUID
-DELETE /apidocs/fusedEntitySummary/{uuid}                 - Delete by UUID
+POST   /api/v1/fusedEntitySummary                        - Add new summary
+PUT    /api/v1/fusedEntitySummary                        - Update summary
+POST   /api/v1/fusedEntitySummary/batchInsert            - Batch add
+POST   /api/v1/fusedEntitySummary/getBatch               - Get batch by UUIDs
+GET    /api/v1/fusedEntitySummary/getByParams            - Query by parameters
+GET    /api/v1/fusedEntitySummary/getLatest              - Get latest
+GET    /api/v1/fusedEntitySummary/getUuids               - List UUIDs
+GET    /api/v1/fusedEntitySummary/{uuid}                 - Get by UUID
+DELETE /api/v1/fusedEntitySummary/{uuid}                 - Delete by UUID
 ```
 
 ### 10.5 liveWorldModel API (7 endpoints)
 
 ```
-POST   /apidocs/liveWorldModel                            - Add new record
-PUT    /apidocs/liveWorldModel                            - Update record
-GET    /apidocs/liveWorldModel/getByParams                - Query by parameters
-GET    /apidocs/liveWorldModel/getLatest                  - Get latest (current impl)
-GET    /apidocs/liveWorldModel/getUuids                   - List UUIDs by origin
-GET    /apidocs/liveWorldModel/{uuid}                     - Get by origin UUID
-DELETE /apidocs/liveWorldModel/{uuid}                     - Delete by UUID
+POST   /api/v1/liveWorldModel                            - Add new record
+PUT    /api/v1/liveWorldModel                            - Update record
+GET    /api/v1/liveWorldModel/getByParams                - Query by parameters
+GET    /api/v1/liveWorldModel/getLatest                  - Get latest (current impl)
+GET    /api/v1/liveWorldModel/getUuids                   - List UUIDs by origin
+GET    /api/v1/liveWorldModel/{uuid}                     - Get by origin UUID
+DELETE /api/v1/liveWorldModel/{uuid}                     - Delete by UUID
 ```
 
 ### 10.6 Server Management API (port 8765)
 
 ```
-GET    /apidocs/health                                    - Health check (status, counts, uptime)
-GET    /apidocs/server/status                             - Server status (uptime, store counts, capacity)
-GET    /apidocs/server/memory                             - Memory usage (RSS, heap, DB size, 2GB limit %)
-POST   /apidocs/server/clearStores                        - Clear all database tables
-GET    /apidocs/metrics                                   - Metrics snapshot (rates, counts, history)
+GET    /api/v1/health                                    - Health check (status, counts, uptime)
+GET    /api/v1/server/status                             - Server status (uptime, store counts, capacity)
+GET    /api/v1/server/memory                             - Memory usage (RSS, heap, DB size, 2GB limit %)
+POST   /api/v1/server/clearStores                        - Clear all database tables
+GET    /api/v1/metrics                                   - Metrics snapshot (rates, counts, history)
 ```
 
 ### 10.8 Data Emulator Control API (port 8766)
 
-> **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/apidocs/` prefix). The emulator is a separate service that POSTs reports to the server.
+> **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/api/v1/` prefix). The emulator is a separate service that POSTs reports to the server.
 
 ```
 GET    /api/health                                        - Emulator health check
@@ -747,6 +747,8 @@ POST   /api/simulation/pause                              - Pause simulation tic
 POST   /api/simulation/resume                             - Resume simulation tick loop
 GET    /api/config                                        - Get current config (target URL, config file)
 POST   /api/config/targetServer                           - Set target server URL
+GET    /api/config/authToken                              - Get current auth token
+POST   /api/config/authToken                              - Set auth token { authToken: "string" }
 ```
 
 ### 10.9 Endpoint Management (port 8766)

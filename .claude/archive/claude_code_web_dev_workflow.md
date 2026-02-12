@@ -429,7 +429,7 @@ sleep 5
 
 # 2. Verify service health
 curl -s http://localhost:8880/api/health | python3 -m json.tool
-curl -s http://localhost:8765/apidocs/health | python3 -m json.tool
+curl -s http://localhost:8765/api/v1/health | python3 -m json.tool
 curl -s http://localhost:8766/api/health | python3 -m json.tool
 
 # 3. Define the capture function (see "Screenshot Capture" section above)

@@ -123,16 +123,16 @@ npm run dev -- --port 4000          # Custom port
 
 | Service | Default Port | Description |
 |---------|--------------|-------------|
-| Server API | 8765 | DiSCO API endpoints at `/apidocs/*` |
+| Server API | 8765 | DiSCO API endpoints at `/api/v1/*` |
 | Client UI | 3000 | React development server |
 
 ### API Endpoints
 
 When the server is running, the following endpoints are available:
 
-- **Health Check**: http://127.0.0.1:8765/apidocs/health
-- **Entity Data**: http://127.0.0.1:8765/apidocs/liveWorldModel/getLatest
-- **Simulation Status**: http://127.0.0.1:8765/apidocs/simulation/status
+- **Health Check**: http://127.0.0.1:8765/api/v1/health
+- **Entity Data**: http://127.0.0.1:8765/api/v1/liveWorldModel/getLatest
+- **Simulation Status**: http://127.0.0.1:8765/api/v1/simulation/status
 
 ## Troubleshooting
 
@@ -186,7 +186,7 @@ git submodule update --init --recursive
 
 1. Ensure server is running:
    ```bash
-   curl http://127.0.0.1:8765/apidocs/health
+   curl http://127.0.0.1:8765/api/v1/health
    ```
 
 2. Check server logs for errors

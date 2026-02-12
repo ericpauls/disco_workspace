@@ -258,4 +258,4 @@ The user may explicitly request non-standard endpoints for debugging or truth-da
 
 - API docs: `disco_live_world_client_ui/javascript-client/docs/*Api.md`
 - Models: `disco_live_world_client_ui/javascript-client/src/model/`
-- Real DiSCO base path: `/api/v1/` (surrogate uses `/apidocs/` as local equivalent)
+- Real DiSCO base path: `/api/v1/` (both real DiSCO and surrogate use this path)
