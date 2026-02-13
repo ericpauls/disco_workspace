@@ -182,9 +182,9 @@ User observed tick utilization percentage climbing as the fusion-prep scenario r
 **Root Cause**: `accumulated_measurements` list in TrackManager (ALWAYS/SOMETIMES modes) grew without bound. The geolocation solver (WLS+NLS+bootstrap) cost scales with measurement count — bootstrap alone was 95% of solver cost at N=200. With 100 entities × 3 ALWAYS endpoints = 300 solver calls per window boundary, the cost grew until it exceeded the 1000ms tick budget.
 
 **Resolution** (three optimizations, steady-state utilization dropped from >100% to ~18%):
-1. **Bootstrap measurement gate** (`geolocation.py`): Skip bootstrap when N > 100 measurements — bias correction is negligible with sufficient data, but costs 15× WLS+NLS re-solves.
+1. **Bootstrap measurement gate** (`geolocation.py`): Skip bootstrap when N > 250 measurements (must be >= max_accumulated to ensure debiasing always fires on NLS windows).
 2. **Accumulated measurements cap** (`track_manager.py`): `max_accumulated=200` with 10% hysteresis sliding window prevents unbounded growth.
-3. **NLS amortization** (`track_manager.py`): For mature tracks, run full NLS only every 3rd window boundary; use WLS-only (~0.2ms vs ~29ms per solve) on intermediate windows.
+3. **NLS amortization** (`track_manager.py`): For mature tracks, run full NLS+bootstrap only every 3rd window boundary; reuse the previous NLS+bootstrap estimate on intermediate windows (avoids WLS-only near-field bias).
 
 **Related Files**:
 - `disco_data_emulator/endpoint_emulator/simulation/tracking/track_manager.py`
