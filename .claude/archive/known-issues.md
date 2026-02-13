@@ -97,7 +97,7 @@ Entity icons on the map, text in the data table info box, legend badges in the h
 
 ---
 
-### Performance Issues with Large Entity Counts
+### Performance Issues with Large Entity Counts (Client-Side)
 **Status**: Needs Implementation
 **Priority**: High
 **Created**: 2026-01-08
@@ -135,6 +135,61 @@ Scenario generation and entity updates become inefficient with large numbers of 
 - `server/routes/liveWorldModel.js` (entity generation)
 - `client/src/hooks/useLiveWorldData.js` (entity updates)
 - `client/src/hooks/useEntityHistory.js` (trail management)
+
+---
+
+### Emulator Tick Scheduling Drift (Server-Side)
+**Status**: COMPLETED (2026-02-12)
+**Priority**: High
+**Created**: 2026-02-11
+
+**Description**:
+The simulation engine falls behind real-time even when tick utilization is well below 100%. At ~43% utilization (432ms tick time), the simulation is already ~40 seconds behind wall clock at tick 94.
+
+**Root Cause**:
+`_schedule_tick()` in `simulation_engine.py` uses `threading.Timer(self.tick_interval, self._tick)` which schedules the next tick N seconds **after the current tick finishes**, not relative to when it should have started. This means the actual period between ticks is `tick_interval + execution_time` instead of just `tick_interval`.
+
+**Resolution**: Implemented compensating timer using `_next_tick_target` (monotonic clock). Each tick advances the target by exactly `tick_interval` and computes `delay = target - now`. Overruns skip ahead to next future target (no catch-up burst). Overrun count exposed in `/api/status` and periodic perf logs.
+
+**Related Files**:
+- `disco_data_emulator/endpoint_emulator/simulation/simulation_engine.py`
+
+---
+
+### Tick Utilization Metric Is Misleading
+**Status**: COMPLETED (2026-02-12)
+**Priority**: High
+**Created**: 2026-02-11
+
+**Description**:
+The tick utilization percentage reported by the emulator dashboard does not reflect whether the simulation is keeping up with real-time. It only measures computation cost vs tick budget.
+
+**Resolution**: Resolved by the compensating timer fix (see above). The existing `avg_tick_duration / tick_interval * 100` formula is now accurate because the timer subtracts execution time from the delay. 43% utilization genuinely means 570ms of headroom. Overrun count (`overrunCount`) added to status API for explicit real-time tracking.
+
+**Related Files**:
+- `disco_data_emulator/endpoint_emulator/simulation/simulation_engine.py`
+
+---
+
+### Tick Utilization Climbs Over Time
+**Status**: COMPLETED (2026-02-12)
+**Priority**: High
+**Created**: 2026-02-11
+
+**Description**:
+User observed tick utilization percentage climbing as the fusion-prep scenario runs longer.
+
+**Root Cause**: `accumulated_measurements` list in TrackManager (ALWAYS/SOMETIMES modes) grew without bound. The geolocation solver (WLS+NLS+bootstrap) cost scales with measurement count — bootstrap alone was 95% of solver cost at N=200. With 100 entities × 3 ALWAYS endpoints = 300 solver calls per window boundary, the cost grew until it exceeded the 1000ms tick budget.
+
+**Resolution** (three optimizations, steady-state utilization dropped from >100% to ~18%):
+1. **Bootstrap measurement gate** (`geolocation.py`): Skip bootstrap when N > 100 measurements — bias correction is negligible with sufficient data, but costs 15× WLS+NLS re-solves.
+2. **Accumulated measurements cap** (`track_manager.py`): `max_accumulated=200` with 10% hysteresis sliding window prevents unbounded growth.
+3. **NLS amortization** (`track_manager.py`): For mature tracks, run full NLS only every 3rd window boundary; use WLS-only (~0.2ms vs ~29ms per solve) on intermediate windows.
+
+**Related Files**:
+- `disco_data_emulator/endpoint_emulator/simulation/tracking/track_manager.py`
+- `disco_data_emulator/endpoint_emulator/simulation/tracking/geolocation.py`
+- `disco_data_emulator/endpoint_emulator/types/enhanced_endpoint.py`
 
 ---
 
