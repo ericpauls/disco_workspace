@@ -25,6 +25,9 @@ npm-debug.log*
 
 # Claude Code local settings
 .claude/settings.local.json
+# Optional: Local context file explaining L3Harris Claude Code deployment
+# (helps clarify global CLAUDE.md origin/applicability without committing deployment-specific notes)
+.claude/L3Harris_official_claudecode.md
 
 # Test artifacts
 screenshots/
