@@ -158,6 +158,9 @@ Based on changed files, determine which docs need review using these **determini
 | `disco_live_world_client_ui/src/components/**` | `docs/c4-architecture-diagram.md` (Client Component diagram) |
 | `disco_live_world_client_ui/src/api/**` | Check if new API client methods need documenting |
 | `disco_live_world_client_ui/src/hooks/**` | `docs/c4-architecture-diagram.md` (Client Component diagram) |
+| `disco_surrogate_server/routes/prototype/**` | `.claude/archive/disco-data-architecture.md` Section 11 (Prototype Registry) |
+| `disco_surrogate_server/prototype/capabilities.ts` | `.claude/archive/disco-data-architecture.md` Section 11 (Prototype Registry) |
+| `disco_live_world_client_ui/src/api/prototypeApi.ts` | `.claude/archive/disco-data-architecture.md` Section 11 (Prototype Registry) |
 | ANY core functionality change | `.claude/archive/entity-reporting-implementation-plan.md` (check [PLANNED] vs implemented status) |
 
 ### Step 4: Analyze Documentation Gaps
@@ -257,6 +260,16 @@ OR: "No documentation updates needed - changes don't affect documented interface
 - New React components
 - Changed component relationships
 - New UI features
+
+### Prototype Endpoint Changes
+**Trigger**: Any change to `disco_surrogate_server/routes/prototype/**`, `disco_surrogate_server/prototype/capabilities.ts`, or `disco_live_world_client_ui/src/api/prototypeApi.ts`
+**Check**: `/Users/ericpauls/Documents/disco_workspace/.claude/archive/disco-data-architecture.md`
+**Section**: "11. Prototype Endpoint Registry"
+**Look for**:
+- New prototype capabilities added to `capabilities.ts` that need documenting in Section 11.2 Active Prototypes table
+- New prototype route files that need their capability key, description, and endpoints listed
+- Prototype API client code that should reference a registered capability
+- Missing `proposedUpstreamChange` documentation for new prototypes
 
 ### Implementation Status
 **Trigger**: ANY significant change to core functionality

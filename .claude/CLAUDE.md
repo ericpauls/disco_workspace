@@ -242,12 +242,110 @@ All data model field names in entity reports, position reports, and other API ob
 
 ### If you need functionality that DiSCO doesn't provide
 
-- **Do NOT create a fake endpoint** that looks like a DiSCO API but isn't one
-- Instead: implement the logic client-side, or flag it as a known limitation
-- Example: DiSCO has no "getDelta" or "batch live world update" endpoint — these must not be added to the surrogate server
+- **Preferred**: implement the logic client-side, or flag it as a known limitation
+- **If a prototype endpoint would provide significant value**: see the Prototype Endpoint Rule below
+- Example: DiSCO has no "getDelta" or "batch live world update" endpoint — these must not be added to canonical surrogate server paths
 
 ### Reference paths
 
 - API docs: `disco_live_world_client_ui/javascript-client/docs/*Api.md`
 - Models: `disco_live_world_client_ui/javascript-client/src/model/`
 - Real DiSCO base path: `/api/v1/` (both real DiSCO and surrogate use this path)
+
+## Prototype Endpoint Rule (NON-CANONICAL EXTENSIONS)
+
+Prototype endpoints are experimental features that extend beyond the canonical DiSCO API. They are allowed ONLY under these strict conditions:
+
+### Canonical-First Principle (HARD GATE)
+
+- ALWAYS try to solve the problem using canonical DiSCO API endpoints first
+- Only consider a prototype endpoint when canonical approaches have significant, quantifiable drawbacks (e.g., "this requires N+1 polling loops and adds 5 seconds of latency" or "this data simply does not exist in any canonical endpoint")
+- Claude Code MUST NEVER independently create prototype endpoints. If a prototype seems useful, Claude MUST:
+  1. **Stop and warn the user** with prominent, up-front text before proceeding
+  2. **Explain why** canonical approaches are insufficient (with specifics)
+  3. **Propose the prototype** as a suggestion for the user to approve or reject
+  4. **Wait for explicit approval** before implementing
+
+**Example warning format:**
+> **WARNING: This plan introduces a non-canonical API endpoint.**
+> Proposed: `POST /api/v1/prototype/entityObservationContext/getLatest`
+> Reason: The canonical entity report response does not include line-of-bearing from the reporting sensor. Computing this client-side would require joining entity reports with position reports on every poll cycle, adding ~2s latency at 1000+ entities. There is no canonical endpoint that provides this data.
+> **This endpoint would need to be proposed to the DiSCO development team for inclusion in the official API.**
+
+### NEVER Modify Canonical Endpoints
+
+- NEVER add fields to canonical endpoint responses
+- NEVER add query parameters to canonical endpoints
+- NEVER change the behavior, types, or structure of any canonical endpoint
+- Adding "optional" fields to canonical responses is FORBIDDEN — it creates silent incompatibility when the same client code is pointed at a real DiSCO server where those fields are absent
+- If you need data not in a canonical response, create a **companion prototype endpoint** that returns the supplementary data keyed by canonical UUIDs
+- Document the companion endpoint as a proposal for the DiSCO team to merge the fields into the canonical endpoint in a future API version
+
+**Example — correct approach for adding line-of-bearing to entity reports:**
+- WRONG: Add `observation_bearing_deg` field to `/api/v1/entities/getLatest` response
+- RIGHT: Create `/api/v1/prototype/entityObservationContext/getLatest` that returns `{ entity_msg_uuid, observation_bearing_deg, observation_distance_km }` as supplementary data. Client fetches canonical entity reports normally, then optionally enriches with prototype data if the capability is available.
+
+### URL Namespace
+
+- ALL prototype endpoints MUST use the prefix: `/api/v1/prototype/`
+- NEVER add prototype functionality to canonical endpoint paths
+- Example: `/api/v1/prototype/fusionPipeline/trigger` — OK
+- Example: `/api/v1/entities/myCustomFilter` — FORBIDDEN
+
+### Capability Registry
+
+- Every prototype feature MUST be registered in `disco_surrogate_server/prototype/capabilities.ts`
+- The capability key, description, and endpoint list must be kept up to date
+- The surrogate server advertises capabilities via the `prototype_capabilities` field in `/api/v1/health`
+
+### Graceful Degradation (HARD GATE)
+
+- ALL components (client UI, emulator, dashboard) MUST check for prototype capability before using any prototype endpoint
+- Client: use `hasCapability(key)` from `ServerCapabilitiesContext`
+- Emulator: use `_has_capability(key)` after `_probe_capabilities()`
+- If capability is absent, the feature MUST be silently disabled — no errors, no crashes
+- This ensures all components work correctly against a real DiSCO server
+
+### Code Marking (MANDATORY)
+
+Every file implementing prototype functionality MUST include:
+
+**TypeScript/JavaScript:**
+```
+// ============================================================
+// PROTOTYPE — NOT PART OF CANONICAL DiSCO API
+// Capability key: "<capability_key>"
+// Description: <what this prototype does>
+// ============================================================
+```
+
+**Python:**
+```
+# ============================================================
+# PROTOTYPE — NOT PART OF CANONICAL DiSCO API
+# Capability key: "<capability_key>"
+# Description: <what this prototype does>
+# ============================================================
+```
+
+### File Organization
+
+- **Surrogate server**: Prototype routes in `routes/prototype/` directory (NOT in `server.ts`)
+- **Client UI**: Prototype API calls in `src/api/prototypeApi.ts` (NOT in `discoApi.ts`)
+- **Client UI**: Prototype hooks in files named `usePrototype*.ts`
+- **Client UI**: Prototype components gated with `hasCapability()` checks
+- **Emulator**: Prototype submission code in separate methods prefixed with `_prototype_`
+
+### Documentation
+
+- Each prototype MUST be documented in `.claude/archive/disco-data-architecture.md` Section 11
+- Documentation MUST clearly state: "PROTOTYPE — Not part of canonical DiSCO API"
+- The prototype registry in `capabilities.ts` is the single source of truth for what prototypes exist
+- Each prototype MUST include a "Proposed Upstream Change" note describing what the DiSCO team would need to change in the official API to make this prototype unnecessary
+
+### Relationship to Canonical Rule
+
+- The API Realism Rule (above) remains in FULL FORCE for all `/api/v1/` paths outside `/api/v1/prototype/`
+- Canonical endpoints are NEVER modified to support prototype features — not their responses, not their query parameters, not their behavior
+- Prototype data models MAY reference canonical UUIDs/fields but MUST NOT alter canonical table schemas
+- Prototype features that prove valuable should be proposed upstream to the real DiSCO API team

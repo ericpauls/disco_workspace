@@ -337,3 +337,5 @@ flowchart TB
 5. **SQLite Storage**: The surrogate server uses SQLite (in-memory via better-sqlite3) with R-tree spatial indexing, FIFO eviction at 100K records, and a 2 GB database size limit with tiered warnings
 
 6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a JSON config file via the dashboard before data flows
+
+7. **Prototype Endpoint Namespace**: Non-canonical experimental endpoints live under `/api/v1/prototype/`, separate from canonical DiSCO API paths. The surrogate server advertises available prototypes via a `prototype_capabilities` field in `/api/v1/health`. All components (client, emulator) discover capabilities on connect and silently disable prototype features when connected to a real DiSCO server

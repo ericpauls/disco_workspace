@@ -64,6 +64,10 @@ flowchart LR
 3. **Server → Client**: Client polls REST endpoints for live world, entity reports, and position reports
 4. **Dashboard → Client**: Dashboard polls client memory stats (estimated RAM, object counts) via Vite dev server plugin, can request data clears, and can override the client's server target (IP/port)
 
+### Prototype Endpoints (Non-Canonical)
+
+The surrogate server supports an optional `/api/v1/prototype/` namespace for experimental features not in the canonical DiSCO API. Components discover available prototypes via the `prototype_capabilities` field in `/api/v1/health`. When connected to a real DiSCO server (which lacks this field), all prototype features are silently disabled. See `.claude/CLAUDE.md` "Prototype Endpoint Rule" for the full policy.
+
 ### Future Implementation (Dashed Lines)
 
 1. **Entity Reports → Correlation → Summarization → Live World**: The fusion pipeline will correlate observations from multiple endpoints and produce fused positions

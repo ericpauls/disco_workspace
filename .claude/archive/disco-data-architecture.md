@@ -761,6 +761,61 @@ POST   /api/endpoints/resumeAll                           - Resume all endpoints
 
 ---
 
+## 11. Prototype Endpoint Registry
+
+> **PROTOTYPE** — Features in this section are NOT part of the canonical DiSCO API.
+> They are experimental extensions available only on the surrogate server.
+> All clients and emulators MUST check for prototype capabilities before use.
+> See workspace `.claude/CLAUDE.md` "Prototype Endpoint Rule" for the full policy.
+
+### 11.1 Capability Discovery
+
+The surrogate server advertises prototype capabilities in the `/api/v1/health` response:
+
+```json
+{
+  "status": "healthy",
+  "timestamp": 1234567890,
+  "server": { "..." : "..." },
+  "prototype_capabilities": {
+    "example_feature": {
+      "enabled": true,
+      "description": "Example prototype feature",
+      "endpoints": ["/api/v1/prototype/example/getStatus"],
+      "proposedUpstreamChange": "Add status field to canonical Entity response"
+    }
+  }
+}
+```
+
+**Real DiSCO servers will NOT include the `prototype_capabilities` field.**
+Clients MUST treat its absence as "no prototypes available" and silently disable all prototype features.
+
+### 11.2 Capability Discovery Integration Points
+
+| Component | How it discovers capabilities | How it gates features |
+|-----------|-------------------------------|----------------------|
+| **Surrogate Server** | N/A — it IS the capability source | Registers in `prototype/capabilities.ts` |
+| **Client UI** | `ServerCapabilitiesContext` probes `/api/v1/health` on connect | `hasCapability(key)` hook |
+| **Data Emulator** | `_probe_capabilities()` called on simulation start | `_has_capability(key)` method |
+
+### 11.3 URL Namespace
+
+All prototype endpoints live under `/api/v1/prototype/`. This prefix is:
+- Distinct from all canonical DiSCO endpoints
+- Easy to grep, filter in logs, and block in middleware
+- Never confused with real DiSCO paths
+
+### 11.4 Active Prototypes
+
+(None yet — prototypes will be documented here as they are created)
+
+| Capability Key | Description | Status | Endpoints | Proposed Upstream Change |
+|---------------|-------------|--------|-----------|------------------------|
+| (none)        |             |        |           |                        |
+
+---
+
 ## See Also
 
 - [disco-overview.md](disco-overview.md) - Product overview and context
