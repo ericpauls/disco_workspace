@@ -8,6 +8,10 @@ Two related tools for DiSCO data simulation (server) and visualization (client).
 ./start.sh  # Starts both server (8765) and client (3000)
 ```
 
+## Project Notes & Context (CRITICAL)
+
+**This project is worked on from multiple machines.** ALL notes, context, development history, and memory files MUST be saved in this workspace's `.claude/` directory (e.g., `.claude/geolocation-aoa.md`). NEVER save project-related notes to `~/.claude/` (the per-machine Claude Code memory directory) — other Claude Code instances on other machines won't be able to see them. The `.claude/` folder in this repo is the single source of truth for project knowledge.
+
 ## Critical Rules
 
 1. **NEVER commit or push without explicit user permission** - Always wait for "commit" or "push" command
@@ -245,6 +249,10 @@ All data model field names in entity reports, position reports, and other API ob
 - **Preferred**: implement the logic client-side, or flag it as a known limitation
 - **If a prototype endpoint would provide significant value**: see the Prototype Endpoint Rule below
 - Example: DiSCO has no "getDelta" or "batch live world update" endpoint — these must not be added to canonical surrogate server paths
+
+### User override exception
+
+The user may explicitly request non-standard endpoints for debugging or truth-data purposes (e.g., exposing ground-truth emitter positions for solver validation). Claude Code must **NEVER** add these on its own initiative — only when the user explicitly proposes them as part of a plan. Non-standard endpoints should be clearly marked (e.g., prefixed with `/debug/` or `/truth/`) so they are obviously not part of the real DiSCO API.
 
 ### Reference paths
 

@@ -295,16 +295,20 @@ body {
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
   margin-top: auto;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .footer-actions {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .footer-links {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* Scenario Selection Panel */

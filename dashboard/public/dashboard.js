@@ -489,8 +489,9 @@ async function updateScenarioPanel(emulatorStatus) {
         opt.textContent = `${s.name} (${s.totalEntities} entities, ${s.totalEndpoints} endpoints)`;
         elements.scenarioSelect.appendChild(opt);
       }
-      // Default to density-gradient if available
-      const defaultConfig = data.configs.find(s => s.file === 'density-gradient.json');
+      // Default to correlation-test if available, otherwise density-gradient
+      const defaultConfig = data.configs.find(s => s.file === 'correlation-test.json')
+        || data.configs.find(s => s.file === 'density-gradient.json');
       if (defaultConfig) elements.scenarioSelect.value = defaultConfig.path;
       updateScenarioDescription();
       scenariosLoaded = true;
