@@ -119,34 +119,45 @@ flowchart LR
             health["Health"]
         end
 
+        subgraph proto_apis["Prototype APIs"]
+            obsctx_api["ObsContext"]
+        end
+
         subgraph stores["SQLite Database"]
             e_db[("E")]
             p_db[("P")]
             lw_db[("LW")]
             fm_db[("FM")]
             fs_db[("FS")]
+            oc_db[("OC")]
         end
 
         express --> apis
+        express --> proto_apis
         apis --> stores
+        proto_apis --> stores
     end
 
     emulator["<b>Data Emulator</b><br/><i>:8766</i>"]
     client["<b>Client UI</b><br/><i>:3000</i>"]
 
     emulator -->|POST reports| apis
+    emulator -.->|POST prototype| proto_apis
     client -->|GET data| apis
+    client -.->|GET prototype| proto_apis
 
     classDef comp fill:#85BBF0,stroke:#5A9BD5,color:#000
+    classDef proto fill:#85BBF0,stroke:#5A9BD5,color:#000,stroke-dasharray: 5 5
     classDef sbox fill:#E8F4FD,stroke:#438DD5,stroke-width:2px
     classDef ext fill:#666,stroke:#444,color:#fff
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
     class express,entities,positions,liveworld,fusedMapping,fusedSummary,health comp
     class e_db,p_db,lw_db,fm_db,fs_db comp
+    class obsctx_api,oc_db proto
     class server sbox
     class emulator,client ext
-    class apis,stores inner
+    class apis,stores,proto_apis inner
 ```
 
 ## Level 3: Component Diagram - Client UI
@@ -170,12 +181,15 @@ flowchart LR
             map["Map View"]
             table["Data Table"]
             details["Details Panel"]
+            lob_layer["LOB Layer"]
         end
 
         subgraph data["Data Layer"]
             polling["Polling Hook"]
             api_svc["API Service"]
             mem_stats["Memory Stats"]
+            proto_hook["Prototype Hook"]
+            proto_api["Prototype API"]
         end
 
         subgraph vite_plugin["Vite Dev Server Plugin"]
@@ -187,6 +201,7 @@ flowchart LR
         shell --> tabs
         tabs --> views
         polling --> api_svc
+        proto_hook --> proto_api
         mem_stats -->|POST| stats_api
     end
 
@@ -196,6 +211,7 @@ flowchart LR
 
     api_svc --> js_client
     js_client --> server
+    proto_api -.->|capability-gated| server
     dashboard -->|GET stats,<br/>POST clear/config| stats_api
     dashboard -->|GET/POST config| config_api
     dashboard -->|GET/POST mode| polling_api
@@ -206,6 +222,7 @@ flowchart LR
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
     class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc,mem_stats comp
+    class lob_layer,proto_hook,proto_api comp
     class stats_api,config_api,polling_api comp
     class client cbox
     class js_client,server,dashboard ext

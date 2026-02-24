@@ -196,6 +196,28 @@ Live World has two sources of data, tracked by the `origin` and `origin_uuid` co
 
 **Total rows in Live World** = Number of tracked entities + Number of DiSCO endpoints
 
+### 3.6 observation_context **[PROTOTYPE — not part of canonical DiSCO API]**
+
+**Purpose**: Raw angle-of-arrival (AOA) measurements from NEVER-mode endpoints. One row per measurement. Companion data to entity reports — enables LOB visualization and future server-side multi-platform geolocation fusion.
+
+**Capability key**: `observation_context` (see Section 11.4)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `observation_context_uuid` | UUID | **Primary key** (server-assigned) |
+| `source_entity_uuid` | UUID | Entity being observed (matches entity report's source_entity_uuid) |
+| `source_payload_uuid` | UUID | Which endpoint made this observation |
+| `sensor_latitude` | REAL | Observer latitude at measurement time (WGS84 decimal degrees) |
+| `sensor_longitude` | REAL | Observer longitude at measurement time (WGS84 decimal degrees) |
+| `sensor_altitude_m` | REAL | Observer altitude in meters above WGS84 ellipsoid |
+| `azimuth_deg` | REAL | Line-of-bearing azimuth in NED frame (clockwise from true North, 0-360) |
+| `elevation_deg` | REAL \| null | Elevation angle (null for 1D arrays; 0° = horizontal) |
+| `latest_timestamp` | INTEGER | Measurement time (ms UTC) |
+| `write_timestamp` | INTEGER | Server write time (ms UTC) |
+
+**Indexes**: `latest_timestamp DESC`, `source_payload_uuid`
+**FIFO eviction**: 100K records (same as canonical tables)
+
 ---
 
 ## 4. Data Flow: Entity Reports to Live World
@@ -810,11 +832,9 @@ All prototype endpoints live under `/api/v1/prototype/`. This prefix is:
 
 ### 11.4 Active Prototypes
 
-(None yet — prototypes will be documented here as they are created)
-
 | Capability Key | Description | Status | Endpoints | Proposed Upstream Change |
 |---------------|-------------|--------|-----------|------------------------|
-| (none)        |             |        |           |                        |
+| `observation_context` | AOA observation context — sensor position and bearing at measurement time, companion to entity reports. NEVER-mode endpoints skip geolocation and instead report raw angle-of-arrival measurements for LOB visualization. | Active (Feb 2026) | `POST .../observationContext/report`, `POST .../batchInsert`, `GET .../getLatest` | Add `sensor_position` and `angle_of_arrival` fields to EntityReport, or create a new ObservationContext resource linked to entity reports by `source_entity_uuid` |
 
 ---
 

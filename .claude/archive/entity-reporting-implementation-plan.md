@@ -14,6 +14,8 @@
 >
 > **Enhanced Entity Model (Feb 2026)**: The measurement model now uses a realistic 1D linear DF array model with angle-of-arrival (AOA) observations, accumulated bearing tracks, and WLS+NLS+bootstrap geolocation solver. See `.claude/geolocation-aoa.md` for detailed technical notes.
 >
+> **Observation Context Prototype (Feb 2026)**: Added non-canonical observation context data (sensor position + AOA bearing) as a companion to entity reports. NEVER-mode endpoints skip geolocation entirely, report raw AOA via the prototype endpoint, and the client UI renders these as lines of bearing (LOB) on the map. Capability-gated via prototype discovery (`observation_context`). See `disco-data-architecture.md` Section 11.4.
+>
 > **Key Gap**: The fusion pipeline (correlation, summarization) is documented but not yet implemented. Entity reports are collected and stored, but not correlated or fused into the Live World Model.
 
 ---

@@ -105,6 +105,11 @@ sequenceDiagram
         E->>S: POST /api/v1/positionReports/batchInsert
         E->>S: POST /api/v1/liveWorldModel (new)
         E->>S: PUT /api/v1/liveWorldModel (updates)
+
+        opt Prototype: observation_context capability
+            E->>S: POST /api/v1/prototype/observationContext/batchInsert
+            Note over E,S: NEVER endpoints report raw AOA bearings
+        end
     end
 
     loop Every 2s (Client Polling)
@@ -115,6 +120,11 @@ sequenceDiagram
         C->>S: GET /api/v1/positionReports
         S-->>C: Position reports
         C->>C: POST /api/client-stats/update (to Vite plugin)
+
+        opt Prototype: observation_context capability
+            C->>S: GET /api/v1/prototype/observationContext/getLatest
+            S-->>C: LOB observation contexts
+        end
     end
 
     loop Every 3s (Dashboard Polling)

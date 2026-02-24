@@ -50,8 +50,19 @@ erDiagram
         json position
     }
 
+    OBSERVATION_CONTEXT {
+        uuid observation_context_uuid PK
+        uuid source_entity_uuid
+        uuid source_payload_uuid FK
+        real sensor_latitude
+        real sensor_longitude
+        real azimuth_deg
+        bigint latest_timestamp
+    }
+
     DISCO_ENDPOINT ||--o{ ENTITIES : "reports"
     DISCO_ENDPOINT ||--o{ POSITION_REPORTS : "reports"
+    DISCO_ENDPOINT ||--o{ OBSERVATION_CONTEXT : "observes"
     ENTITIES ||--o| FUSED_ENTITY_MAPPING : "maps to"
     FUSED_ENTITY_MAPPING }o--|| FUSED_ENTITY_SUMMARY : "summarizes"
     FUSED_ENTITY_SUMMARY ||--o| LIVE_WORLD_MODEL : "fused path"
@@ -239,6 +250,7 @@ flowchart LR
 | `liveWorldModel` | ✓ Implemented | Currently shows truth data directly |
 | `fusedEntityMapping` | API Implemented | Correlation service output (9 endpoints) |
 | `fusedEntitySummary` | API Implemented | Summarization service output (9 endpoints) |
+| `observation_context` | PROTOTYPE | AOA/LOB data from NEVER endpoints (non-canonical, capability-gated) |
 
 ## Key Design Principles
 
