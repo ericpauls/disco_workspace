@@ -26,7 +26,7 @@ erDiagram
     }
 
     POSITION_REPORTS {
-        uuid position_report_uuid PK
+        uuid position_report_msg_uuid PK
         uuid source_payload_uuid FK
         json position
         bigint latest_timestamp
@@ -50,19 +50,8 @@ erDiagram
         json position
     }
 
-    OBSERVATION_CONTEXT {
-        uuid observation_context_uuid PK
-        uuid source_entity_uuid
-        uuid source_payload_uuid FK
-        real sensor_latitude
-        real sensor_longitude
-        real azimuth_deg
-        bigint latest_timestamp
-    }
-
     DISCO_ENDPOINT ||--o{ ENTITIES : "reports"
     DISCO_ENDPOINT ||--o{ POSITION_REPORTS : "reports"
-    DISCO_ENDPOINT ||--o{ OBSERVATION_CONTEXT : "observes"
     ENTITIES ||--o| FUSED_ENTITY_MAPPING : "maps to"
     FUSED_ENTITY_MAPPING }o--|| FUSED_ENTITY_SUMMARY : "summarizes"
     FUSED_ENTITY_SUMMARY ||--o| LIVE_WORLD_MODEL : "fused path"
@@ -86,7 +75,7 @@ flowchart LR
     subgraph server["Server-Side (DiSCO)"]
         direction TB
         emu["entity_msg_uuid"]
-        pru["position_report_uuid"]
+        pru["position_report_msg_uuid"]
         gu["group_uuid"]
         su["summary_uuid"]
         lwu["liveworldmodel_uuid"]

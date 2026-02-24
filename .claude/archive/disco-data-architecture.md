@@ -118,7 +118,7 @@ All three get: group_uuid = "group-555"
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `position_report_uuid` | UUID | **Primary key** (server-assigned) |
+| `position_report_msg_uuid` | UUID | **Primary key** (server-assigned) |
 | `source_position_report_uuid` | UUID | Endpoint's internal report ID |
 | `source_payload_uuid` | UUID | Which endpoint sent this report |
 | `position` | Position | Endpoint's current location (lat/lon/alt) |
@@ -196,27 +196,24 @@ Live World has two sources of data, tracked by the `origin` and `origin_uuid` co
 
 **Total rows in Live World** = Number of tracked entities + Number of DiSCO endpoints
 
-### 3.6 observation_context **[PROTOTYPE — not part of canonical DiSCO API]**
+### 3.6 entity_report_lob **[PROTOTYPE — not part of canonical DiSCO API]**
 
-**Purpose**: Raw angle-of-arrival (AOA) measurements from NEVER-mode endpoints. One row per measurement. Companion data to entity reports — enables LOB visualization and future server-side multi-platform geolocation fusion.
+**Purpose**: Extended entity reports with LOB fields (sensor position + bearing) for LOB visualization. Uses the same `entity_reports` table with additional nullable columns. NEVER-mode endpoints emit per-tick entity reports with LOB fields populated.
 
-**Capability key**: `observation_context` (see Section 11.4)
+**Capability key**: `entity_report_lob` (see Section 11)
+
+Additional columns on `entity_reports` table (nullable, populated only by prototype endpoint):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `observation_context_uuid` | UUID | **Primary key** (server-assigned) |
-| `source_entity_uuid` | UUID | Entity being observed (matches entity report's source_entity_uuid) |
-| `source_payload_uuid` | UUID | Which endpoint made this observation |
-| `sensor_latitude` | REAL | Observer latitude at measurement time (WGS84 decimal degrees) |
-| `sensor_longitude` | REAL | Observer longitude at measurement time (WGS84 decimal degrees) |
-| `sensor_altitude_m` | REAL | Observer altitude in meters above WGS84 ellipsoid |
-| `azimuth_deg` | REAL | Line-of-bearing azimuth in NED frame (clockwise from true North, 0-360) |
-| `elevation_deg` | REAL \| null | Elevation angle (null for 1D arrays; 0° = horizontal) |
-| `latest_timestamp` | INTEGER | Measurement time (ms UTC) |
-| `write_timestamp` | INTEGER | Server write time (ms UTC) |
+| `observation_distance_km` | REAL \| null | Distance from observer to entity (km) |
+| `observation_bearing_deg` | REAL \| null | Bearing from observer to entity (CW from true North, 0-360) |
+| `sensor_latitude` | REAL \| null | Observer latitude at measurement time (WGS84) |
+| `sensor_longitude` | REAL \| null | Observer longitude at measurement time (WGS84) |
+| `sensor_altitude_m` | REAL \| null | Observer altitude (meters above WGS84 ellipsoid) |
 
-**Indexes**: `latest_timestamp DESC`, `source_payload_uuid`
-**FIFO eviction**: 100K records (same as canonical tables)
+**Endpoints**: `POST /api/v1/prototype/entityReportLob/batchInsert`, `GET /api/v1/prototype/entityReportLob/getLatest`
+**Canonical GET** (`/api/v1/entities/getLatest`) omits all 5 LOB fields — prototype GET includes them.
 
 ---
 
@@ -303,7 +300,7 @@ DiSCO Endpoint
 │ DiSCO Server                                                             │
 │                                                                          │
 │   1. RECEIVE: Position report arrives via API                           │
-│   2. STAMP: Server assigns position_report_uuid                         │
+│   2. STAMP: Server assigns position_report_msg_uuid                     │
 │   3. STORE: Write to positionReports table                              │
 │                         │                                                │
 │                         ▼                                                │

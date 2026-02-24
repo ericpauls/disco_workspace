@@ -427,7 +427,7 @@ interface EntityReport {
 }
 
 interface PositionReport {
-  position_report_uuid: string;     // Server-assigned
+  position_report_msg_uuid: string;     // Server-assigned
   source_position_report_uuid: string;
   source_payload_uuid: string;
   position: Position;
@@ -683,7 +683,7 @@ export interface EntityReport {
 }
 
 export interface PositionReport {
-  position_report_uuid: string;
+  position_report_msg_uuid: string;
   source_position_report_uuid: string;
   source_payload_uuid: string;
   position: Position;
@@ -931,7 +931,7 @@ curl http://localhost:8765/api/v1/positionReports/getLatest | jq .
 
 # Verify structure
 curl http://localhost:8765/api/v1/positionReports/getLatest | jq '.tasks[0] | keys'
-# Should include: position_report_uuid, source_payload_uuid, position, etc.
+# Should include: position_report_msg_uuid, source_payload_uuid, position, etc.
 ```
 
 ### 8.4 Client UI

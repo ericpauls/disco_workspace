@@ -181,6 +181,7 @@ Example: "I've completed the implementation. Let me run the completion checklist
 
 Detailed docs in `.claude/archive/`:
 
+- `canonical-api-field-reference.md` - **AUTHORITATIVE** canonical field names per API model + prototype-only fields registry
 - `disco-data-architecture.md` - Complete data architecture (UUIDs, tables, data flows)
 - `entity-reporting-implementation-plan.md` - Implementation plan and status
 - `claude_code_web_dev_workflow.md` - Visual testing workflow details
@@ -235,6 +236,25 @@ All data model field names in entity reports, position reports, and other API ob
 **Common mistakes to avoid:**
 - `modulation` → MUST be `modulation_type` (matches `ModulationType` in canonical API)
 - `created_timestamp` → MUST be `write_timestamp` (every canonical DiSCO response uses `write_timestamp`)
+- `position_report_uuid` → MUST be `position_report_msg_uuid` (matches `PositionReportMsg` canonical model)
+- Adding non-canonical fields to canonical response mappers (e.g., `observation_bearing_deg` in `rowToEntity()`)
+
+**Known past deviations (fixed) — learn from these:**
+
+| Wrong | Correct | What happened |
+|-------|---------|---------------|
+| `position_report_uuid` | `position_report_msg_uuid` | Initial implementation used wrong UUID field name across all layers |
+| `observation_bearing_deg` in canonical GET | Prototype-only | Non-canonical field leaked into canonical `rowToEntity()` mapper |
+| `observation_distance_km` in canonical GET | Prototype-only | Same leak as above |
+
+**Mandatory field verification procedure** — before adding ANY field to a type definition, DB schema, or API response:
+1. Open `javascript-client/src/model/` and find the canonical model file
+2. Check `constructFromObject()` for the EXACT wire-format field names
+3. Verify character-for-character match — pay special attention to the `_msg_` infix pattern:
+   - Entity reports: `entity_msg_uuid` (NOT `entity_uuid`)
+   - Position reports: `position_report_msg_uuid` (NOT `position_report_uuid`)
+4. Cross-reference with `.claude/archive/canonical-api-field-reference.md`
+5. If the field does NOT exist in the canonical model, it MUST go through the prototype endpoint system (see Prototype Endpoint Rule below)
 
 **Exception:** Emulator-internal fields not part of any DiSCO API (e.g., endpoint `created_timestamp` for internal state tracking) are fine — these never cross the API boundary.
 
