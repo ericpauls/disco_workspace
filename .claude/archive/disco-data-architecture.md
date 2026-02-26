@@ -749,6 +749,7 @@ GET    /api/v1/health                                    - Health check (status,
 GET    /api/v1/server/status                             - Server status (uptime, store counts, capacity)
 GET    /api/v1/server/memory                             - Memory usage (RSS, heap, DB size, 2GB limit %)
 POST   /api/v1/server/clearStores                        - Clear all database tables
+POST   /api/v1/server/generateSyntheticData              - Generate diverse synthetic test data (10 scenarios, 2025)
 GET    /api/v1/metrics                                   - Metrics snapshot (rates, counts, history)
 ```
 
@@ -833,7 +834,7 @@ All prototype endpoints live under `/api/v1/prototype/`. This prefix is:
 | Capability Key | Description | Status | Endpoints | Proposed Upstream Change |
 |---------------|-------------|--------|-----------|------------------------|
 | `observation_context` | AOA observation context — sensor position and bearing at measurement time, companion to entity reports. NEVER-mode endpoints skip geolocation and instead report raw angle-of-arrival measurements for LOB visualization. | Active (Feb 2026) | `POST .../observationContext/report`, `POST .../batchInsert`, `GET .../getLatest` | Add `sensor_position` and `angle_of_arrival` fields to EntityReport, or create a new ObservationContext resource linked to entity reports by `source_entity_uuid` |
-| `data_statistics` | Data ingestion statistics with temporal and spatial binning — provides time histograms and geographic heatmaps of data distribution for dashboard visualization. Reads from canonical tables (read-only). No canonical table or endpoint modifications. | Planned (Feb 2026) | `GET .../dataStatistics/overview`, `GET .../dataStatistics/timeline`, `GET .../dataStatistics/heatmap`, `GET .../dataStatistics/metrics` | Add data ingestion statistics endpoints to the canonical DiSCO server API for operational monitoring and data exploration |
+| `data_statistics` | Data ingestion statistics with temporal and spatial binning — provides time histograms and geographic heatmaps of data distribution for dashboard visualization. Reads from canonical tables (read-only). No canonical table or endpoint modifications. | Active (Feb 2026) | `GET .../dataStatistics/overview`, `GET .../dataStatistics/timeline`, `GET .../dataStatistics/heatmap`, `GET .../dataStatistics/metrics` | Add data ingestion statistics endpoints to the canonical DiSCO server API for operational monitoring and data exploration |
 
 ### 11.5 `data_statistics` — Detailed Specification
 

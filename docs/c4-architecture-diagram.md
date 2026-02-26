@@ -121,7 +121,12 @@ flowchart LR
 
         subgraph proto_apis["Prototype APIs"]
             obsctx_api["ObsContext"]
+            datastats_api["DataStatistics"]
         end
+
+        stats_engine["<b>StatisticsEngine</b><br/><i>In-memory bins<br/>H3 spatial + time</i>"]
+
+        dashboard_ui["<b>Dashboard UI</b><br/><i>React SPA</i>"]
 
         subgraph stores["SQLite Database"]
             e_db[("E")]
@@ -134,8 +139,11 @@ flowchart LR
 
         express --> apis
         express --> proto_apis
+        express --> dashboard_ui
         apis --> stores
         proto_apis --> stores
+        datastats_api --> stats_engine
+        stats_engine -.->|read-only| stores
     end
 
     emulator["<b>Data Emulator</b><br/><i>:8766</i>"]
@@ -154,7 +162,7 @@ flowchart LR
 
     class express,entities,positions,liveworld,fusedMapping,fusedSummary,health comp
     class e_db,p_db,lw_db,fm_db,fs_db comp
-    class obsctx_api,oc_db proto
+    class obsctx_api,datastats_api,oc_db,stats_engine,dashboard_ui proto
     class server sbox
     class emulator,client ext
     class apis,stores,proto_apis inner
