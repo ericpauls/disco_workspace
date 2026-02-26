@@ -41,6 +41,7 @@ const elements = {
   emulatorEndpointCount: document.getElementById('emulator-endpoint-count'),
   emulatorTick: document.getElementById('emulator-tick'),
   emulatorMemory: document.getElementById('emulator-memory'),
+  emulatorBacklog: document.getElementById('emulator-backlog'),
   emulatorTargetUrl: document.getElementById('emulator-target-url'),
   emulatorTargetStatus: document.getElementById('emulator-target-status'),
   btnSetEmulatorTarget: document.getElementById('btn-set-emulator-target'),
@@ -582,6 +583,19 @@ function updateEmulatorStats(statusData) {
   setText(elements.emulatorEntityCount, formatNumber(statusData.totalEntities));
   setText(elements.emulatorEndpointCount, formatNumber(statusData.endpointCount));
   setText(elements.emulatorTick, formatNumber(statusData.tickCount));
+
+  // Backlog display
+  var backlog = statusData.backlog;
+  if (backlog && elements.emulatorBacklog) {
+    var txt = backlog.total + ' (Q: ' + backlog.queueDepth + ')';
+    setText(elements.emulatorBacklog, txt);
+    elements.emulatorBacklog.style.color =
+      backlog.total > 10 ? 'var(--color-error)' :
+      backlog.total > 0 ? 'var(--color-warning)' : '';
+  } else if (elements.emulatorBacklog) {
+    setText(elements.emulatorBacklog, '-');
+    elements.emulatorBacklog.style.color = '';
+  }
 }
 
 // ============================================================
