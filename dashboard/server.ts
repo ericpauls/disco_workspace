@@ -184,6 +184,22 @@ function killProcessesOnPort(port: number): number {
   return killed;
 }
 
+// Kill an entire process group by sending a signal to -pid.
+// With detached:true, each spawned service gets its own process group,
+// so this kills the service and ALL its descendants (e.g. npx → tsx → node).
+function killProcessGroup(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(-pid, signal); // Negative PID = entire process group
+  } catch {
+    // Process group may not exist; try direct kill as fallback
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // Already dead
+    }
+  }
+}
+
 async function startService(serviceName: string): Promise<{ success: boolean; error?: string }> {
   const service = services[serviceName];
   if (!service) return { success: false, error: `Unknown service: ${serviceName}` };
@@ -211,6 +227,7 @@ async function startService(serviceName: string): Promise<{ success: boolean; er
       cwd: config.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: process.platform === 'win32',
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         FORCE_COLOR: '0',
@@ -274,16 +291,16 @@ async function stopService(serviceName: string): Promise<{ success: boolean; err
 
   addLog(serviceName, `Stopping ${service.config.displayName}...`);
 
-  // Step 1: Kill the tracked child process if we have one
-  if (service.process) {
-    service.process.kill('SIGTERM');
+  // Step 1: Kill the tracked child process and its entire process group
+  if (service.process && service.process.pid) {
+    killProcessGroup(service.process.pid, 'SIGTERM');
 
-    // Wait up to 5 seconds for graceful exit, then force kill
+    // Wait up to 5 seconds for graceful exit, then force kill the group
     await new Promise<void>(resolve => {
       const killTimeout = setTimeout(() => {
-        if (service.process) {
-          addLog(serviceName, 'Force killing tracked process...');
-          service.process.kill('SIGKILL');
+        if (service.process && service.process.pid) {
+          addLog(serviceName, 'Force killing tracked process group...');
+          killProcessGroup(service.process.pid, 'SIGKILL');
         }
         resolve();
       }, 5000);
@@ -475,22 +492,27 @@ app.listen(PORT, () => {
   `);
 });
 
-// Graceful shutdown - stop all child processes AND clean up ports
-function shutdown(): void {
-  console.log('\nShutting down all services...');
+// Graceful shutdown - stop all child process groups AND clean up ports
+let isShuttingDown = false;
 
-  // Step 1: SIGTERM tracked child processes
+function shutdown(signal: string): void {
+  if (isShuttingDown) return; // Prevent re-entry (dashboard receives both SIGINT and SIGTERM)
+  isShuttingDown = true;
+
+  console.log(`\nDashboard received ${signal}, shutting down all services...`);
+
+  // Step 1: SIGTERM entire process group for each service
   for (const service of Object.values(services)) {
-    if (service.process) {
-      service.process.kill('SIGTERM');
+    if (service.process?.pid) {
+      killProcessGroup(service.process.pid, 'SIGTERM');
     }
   }
 
-  // Step 2: After 5 seconds, force kill any remaining processes on all service ports
+  // Step 2: After 5 seconds, force kill any remaining process groups + port cleanup
   setTimeout(() => {
     for (const service of Object.values(services)) {
-      if (service.process) {
-        service.process.kill('SIGKILL');
+      if (service.process?.pid) {
+        killProcessGroup(service.process.pid, 'SIGKILL');
       }
       // Kill anything else on the port (orphans, duplicates)
       killProcessesOnPort(service.config.port);
@@ -499,5 +521,5 @@ function shutdown(): void {
   }, 5000);
 }
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -479,23 +479,52 @@ check_dependencies() {
 # PROCESS MANAGEMENT
 # ==============================================================================
 
+# Kill a process and all its descendants (children, grandchildren, etc.)
+# Uses pgrep -P to walk the process tree bottom-up so children die before
+# parents — this prevents reparenting to PID 1 during the walk.
+kill_tree() {
+    local pid=$1
+    local signal=${2:-TERM}
+
+    # First, recursively kill children
+    local children
+    children=$(pgrep -P "$pid" 2>/dev/null) || true
+    for child in $children; do
+        kill_tree "$child" "$signal"
+    done
+
+    # Then kill the process itself
+    kill -"$signal" "$pid" 2>/dev/null || true
+}
+
 cleanup() {
     echo ""
     print_header "Shutting Down"
 
     if [[ -n "$DASHBOARD_PID" ]] && kill -0 "$DASHBOARD_PID" 2>/dev/null; then
-        print_info "Stopping dashboard (PID: $DASHBOARD_PID)..."
-        # Dashboard handles cascading shutdown of child services
-        kill "$DASHBOARD_PID" 2>/dev/null || true
-        sleep 2
+        print_info "Stopping dashboard and all child processes (PID: $DASHBOARD_PID)..."
 
+        # SIGTERM the entire process tree (dashboard + descendants)
+        kill_tree "$DASHBOARD_PID" TERM
+
+        # Wait up to 5 seconds for graceful shutdown (matches dashboard's own timeout)
+        local count=0
+        while kill -0 "$DASHBOARD_PID" 2>/dev/null && [[ $count -lt 50 ]]; do
+            sleep 0.1
+            ((count++))
+        done
+
+        # Force kill any survivors
         if kill -0 "$DASHBOARD_PID" 2>/dev/null; then
-            kill -9 "$DASHBOARD_PID" 2>/dev/null || true
+            print_warning "Force killing remaining processes..."
+            kill_tree "$DASHBOARD_PID" KILL
+            sleep 0.5
         fi
     fi
 
-    # Clean up any remaining processes on known ports
-    for port in "$SERVER_PORT" "$EMULATOR_PORT" "$CLIENT_PORT"; do
+    # Belt-and-suspenders: kill anything still on ALL 4 ports
+    # This catches orphans reparented to PID 1 that escaped the tree kill
+    for port in "$DASHBOARD_PORT" "$SERVER_PORT" "$EMULATOR_PORT" "$CLIENT_PORT"; do
         if is_port_in_use "$port"; then
             kill_process_on_port "$port" 2>/dev/null || true
         fi
