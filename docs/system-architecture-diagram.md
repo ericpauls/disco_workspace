@@ -27,6 +27,8 @@ flowchart LR
         lw[("liveWorld")]
         fm[("fusedMappings")]
         fs[("fusedSummaries")]
+        stats["StatisticsEngine"]
+        srvDash["Dashboard UI<br/>/dashboard"]
     end
 
     ui["&nbsp;&nbsp;Client :3000&nbsp;&nbsp;"]

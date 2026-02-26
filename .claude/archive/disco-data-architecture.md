@@ -753,6 +753,38 @@ POST   /api/v1/server/generateSyntheticData              - Generate diverse synt
 GET    /api/v1/metrics                                   - Metrics snapshot (rates, counts, history)
 ```
 
+### 10.7 Synthetic Data Generator
+
+**File:** `tools/syntheticDataGenerator.ts`
+**Invocation:** `POST /api/v1/server/generateSyntheticData` (clears existing data first)
+
+Generates realistic historical ELINT data for testing the server dashboard statistics, client query features, and timeline visualization. Produces three data types:
+
+| Data Type | Volume | Description |
+|-----------|--------|-------------|
+| Entity Reports | ~1.6–1.8M | Individual sensor observations of emitters with signal params, geolocation, error ellipses, and LOB fields |
+| Position Reports | ~31K | Endpoint (sensor platform) positions over time — one per endpoint per minute of flight |
+| Live World Entities | ~1.5–2K | Fused track state — one entry per emitter per flight day, representing fusion pipeline output |
+
+**10 Named Scenarios (Jan–Dec 2025):**
+
+| Scenario | Region | Endpoints | Entities | Days | Hours |
+|----------|--------|-----------|----------|------|-------|
+| Winter Exercise | Baltic Sea | 5 | 40–60 | 3 | 4h |
+| Pacific Patrol | South China Sea | 2 | 15–25 | 5 | 2h |
+| Desert Shield | Persian Gulf | 8 | 70–100 | 2 | 6h |
+| Med Cruise | E. Mediterranean | 3 | 25–35 | 7 | 3h |
+| Arctic Watch | Norwegian Sea | 1 | 8–12 | 2 | 1h |
+| Strait Patrol | Strait of Malacca | 4 | 30–50 | 10 | 2h |
+| Black Sea Intel | Black Sea | 6 | 50–70 | 4 | 3h |
+| Horn Response | Horn of Africa | 2 | 12–20 | 3 | 2h |
+| Pacific Thunder | Sea of Japan | 10 | 80–120 | 1 | 8h |
+| Year-End Review | South Atlantic | 3 | 20–30 | 5 | 2h |
+
+**7 Emitter Profiles** (weighted): Coastal Search Radar (30%), SA-20 Acquisition (15%), Nav Radar (15%), VHF Marine (15%), UHF Tactical (10%), Barrage Jammer (10%), EA System (5%). Each includes domain (MARITIME/LAND/AIR), platform type, and realistic signal parameters.
+
+**How to extend:** Add entries to the `SCENARIOS` array (see `Scenario` interface) or `EMITTER_PROFILES` array. Adjust `REPORT_INTERVAL_MS` (default 60s) to change report density.
+
 ### 10.8 Data Emulator Control API (port 8766)
 
 > **Note**: These endpoints live on the **Data Emulator** service (port 8766, `/api/` prefix), NOT on the Surrogate Server (port 8765, `/api/v1/` prefix). The emulator is a separate service that POSTs reports to the server.
@@ -833,8 +865,9 @@ All prototype endpoints live under `/api/v1/prototype/`. This prefix is:
 
 | Capability Key | Description | Status | Endpoints | Proposed Upstream Change |
 |---------------|-------------|--------|-----------|------------------------|
-| `observation_context` | AOA observation context — sensor position and bearing at measurement time, companion to entity reports. NEVER-mode endpoints skip geolocation and instead report raw angle-of-arrival measurements for LOB visualization. | Active (Feb 2026) | `POST .../observationContext/report`, `POST .../batchInsert`, `GET .../getLatest` | Add `sensor_position` and `angle_of_arrival` fields to EntityReport, or create a new ObservationContext resource linked to entity reports by `source_entity_uuid` |
+| `entity_report_lob` | Extended entity reports with LOB fields — sensor position and measured bearing for LOB visualization. Companion data to canonical entity reports. | Active (Feb 2026) | `POST .../entityReportLob/batchInsert`, `GET .../entityReportLob/getLatest` | Add `sensor_latitude`, `sensor_longitude`, `sensor_altitude_m` fields to the canonical EntityReport schema |
 | `data_statistics` | Data ingestion statistics with temporal and spatial binning — provides time histograms and geographic heatmaps of data distribution for dashboard visualization. Reads from canonical tables (read-only). No canonical table or endpoint modifications. | Active (Feb 2026) | `GET .../dataStatistics/overview`, `GET .../dataStatistics/timeline`, `GET .../dataStatistics/heatmap`, `GET .../dataStatistics/metrics` | Add data ingestion statistics endpoints to the canonical DiSCO server API for operational monitoring and data exploration |
+| `live_world_batch_upsert` | Batch upsert for live world model entities — INSERT or UPDATE in a single transactional request, replacing per-entity POST/PUT for high-throughput scenarios. | Active (Feb 2026) | `POST .../liveWorldModel/batchUpsert` | Add a batch upsert endpoint to the canonical LiveWorldModel API to support high-throughput data submission without individual POST/PUT per entity |
 
 ### 11.5 `data_statistics` — Detailed Specification
 
