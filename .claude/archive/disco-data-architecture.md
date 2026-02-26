@@ -16,6 +16,7 @@
 8. [Geolocation & Uncertainty Modeling](#8-geolocation--uncertainty-modeling)
 9. [Key Design Principles](#9-key-design-principles)
 10. [API Endpoints Reference](#10-api-endpoints-reference)
+11. [Prototype Endpoint Registry](#11-prototype-endpoint-registry) — includes `data_statistics` (Section 11.5)
 
 ---
 
@@ -832,6 +833,178 @@ All prototype endpoints live under `/api/v1/prototype/`. This prefix is:
 | Capability Key | Description | Status | Endpoints | Proposed Upstream Change |
 |---------------|-------------|--------|-----------|------------------------|
 | `observation_context` | AOA observation context — sensor position and bearing at measurement time, companion to entity reports. NEVER-mode endpoints skip geolocation and instead report raw angle-of-arrival measurements for LOB visualization. | Active (Feb 2026) | `POST .../observationContext/report`, `POST .../batchInsert`, `GET .../getLatest` | Add `sensor_position` and `angle_of_arrival` fields to EntityReport, or create a new ObservationContext resource linked to entity reports by `source_entity_uuid` |
+| `data_statistics` | Data ingestion statistics with temporal and spatial binning — provides time histograms and geographic heatmaps of data distribution for dashboard visualization. Reads from canonical tables (read-only). No canonical table or endpoint modifications. | Planned (Feb 2026) | `GET .../dataStatistics/overview`, `GET .../dataStatistics/timeline`, `GET .../dataStatistics/heatmap`, `GET .../dataStatistics/metrics` | Add data ingestion statistics endpoints to the canonical DiSCO server API for operational monitoring and data exploration |
+
+### 11.5 `data_statistics` — Detailed Specification
+
+> **PROTOTYPE — NOT PART OF CANONICAL DiSCO API**
+> Capability key: `data_statistics`
+
+#### Overview
+
+Provides aggregated statistics about data distribution over time and space, derived entirely from READ-ONLY queries against canonical DiSCO tables. The feature is designed to help administrators understand where and when data was collected, select time/space windows of interest, and eventually make targeted data queries.
+
+#### Canonical Impact: NONE
+
+This prototype is designed for **zero contamination** of canonical DiSCO components:
+
+| Canonical Component | Impact |
+|--------------------|--------|
+| `entity_reports` table | **No changes** — read-only queries using existing `latest_timestamp` index and `latitude`/`longitude` columns |
+| `position_reports` table | **No changes** — same read-only pattern |
+| `live_world_entities` table | **No changes** — same read-only pattern |
+| `fused_entity_mappings` table | **No changes** — same read-only pattern |
+| `fused_entity_summaries` table | **No changes** — same read-only pattern |
+| All canonical API endpoints | **No changes** — no new fields, no new query params, no behavior changes |
+| Repository classes | **No changes** — statistics engine reads the database directly, does not modify repository code |
+
+#### Data Model
+
+The statistics engine maintains **in-memory-only** data structures (no new database tables, no disk persistence):
+
+**Time histogram bins** (3 resolution tiers):
+```
+Map<binStartMs, Record<DataType, count>>
+```
+- 2-minute resolution: `floor(timestamp / 120,000ms) * 120,000ms`
+- 1-hour resolution: `floor(timestamp / 3,600,000ms) * 3,600,000ms`
+- 1-day resolution: `floor(timestamp / 86,400,000ms) * 86,400,000ms`
+
+**Spatial bins** (H3 hexagonal grid):
+```
+Map<h3CellIndex, Record<DataType, count>>
+```
+- H3 resolution 7 (~5.2 km² per hexagon, equal-area globally)
+- Computed from `latitude`/`longitude` columns in canonical tables using `h3-js` library
+- H3 cell indices are strings (e.g., `'87283472bffffff'`)
+
+**Data types tracked**:
+| DataType key | Source table (canonical) | Category | Default visibility |
+|-------------|-------------------------|----------|-------------------|
+| `entity_report` | `entity_reports` | Incoming (from endpoints) | Visible |
+| `position_report` | `position_reports` | Incoming (from endpoints) | Visible |
+| `live_world` | `live_world_entities` | Derived (server-generated) | Hidden |
+| `fused_mapping` | `fused_entity_mappings` | Derived (server-generated) | Hidden |
+| `fused_summary` | `fused_entity_summaries` | Derived (server-generated) | Hidden |
+
+#### API Endpoints
+
+All endpoints are under `/api/v1/prototype/dataStatistics/`.
+
+**`GET /overview`** — Summary of all available data
+```json
+{
+  "timeRange": { "first": 1708900000000, "last": 1708910000000 },
+  "counts": {
+    "entity_report": 45000,
+    "position_report": 12000,
+    "live_world": 350,
+    "fused_mapping": 0,
+    "fused_summary": 0
+  },
+  "rebuildStatus": {
+    "lastRebuildMs": 1708909998000,
+    "rebuildIntervalMs": 30000,
+    "isRebuilding": false
+  }
+}
+```
+
+**`GET /timeline?from=&to=&resolution=`** — Time histogram bins
+- `from` / `to`: epoch ms (optional, defaults to full range)
+- `resolution`: `2min` | `1hour` | `1day` (optional, auto-selected from range width)
+```json
+{
+  "bins": [
+    { "startMs": 1708900000000, "endMs": 1708900120000, "counts": { "entity_report": 150, "position_report": 30 } }
+  ],
+  "resolution": "2min",
+  "from": 1708900000000,
+  "to": 1708910000000
+}
+```
+
+**`GET /heatmap?from=&to=&types=`** — Spatial bins for a time window
+- `from` / `to`: epoch ms (required — scoped to timeline sub-window)
+- `types`: comma-separated DataType keys (optional, defaults to incoming types)
+```json
+{
+  "cells": [
+    { "h3Index": "87283472bffffff", "count": 42 }
+  ],
+  "from": 1708900000000,
+  "to": 1708900120000
+}
+```
+
+**`GET /metrics?from=&to=&minLat=&maxLat=&minLon=&maxLon=`** — Per-type counts in a time+space window
+- All params required (scoped to user's time + spatial selection)
+```json
+{
+  "counts": {
+    "entity_report": 120,
+    "position_report": 25,
+    "live_world": 8,
+    "fused_mapping": 0,
+    "fused_summary": 0
+  },
+  "from": 1708900000000,
+  "to": 1708900120000
+}
+```
+
+#### Implementation Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Surrogate Server                       │
+│                                                         │
+│  ┌─────────────────┐     ┌──────────────────────────┐  │
+│  │ Canonical Routes │     │ Prototype Routes          │  │
+│  │ /api/v1/entities │     │ /api/v1/prototype/        │  │
+│  │ /api/v1/posRpts  │     │   dataStatistics/overview │  │
+│  │   ...            │     │   dataStatistics/timeline │  │
+│  └────────┬─────────┘     │   dataStatistics/heatmap  │  │
+│           │               │   dataStatistics/metrics  │  │
+│           │ (read/write)  └──────────────┬────────────┘  │
+│           ▼                              │               │
+│  ┌─────────────────┐                    │ (delegates)   │
+│  │ Canonical Tables │◄── read-only ─────┤               │
+│  │ (SQLite)         │    queries         ▼               │
+│  │  entity_reports  │          ┌──────────────────┐     │
+│  │  position_reports│          │ StatisticsEngine  │     │
+│  │  live_world_*    │          │ (in-memory only)  │     │
+│  │  fused_*         │          │                   │     │
+│  └─────────────────┘          │ • Time bins (3 res)│     │
+│                               │ • H3 spatial bins  │     │
+│  Canonical routes also notify │ • Periodic rebuild │     │
+│  engine after inserts ────────►  from canonical DB │     │
+│  (route-level, not repo-level)└──────────────────┘     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key architectural principle**: The statistics engine is a **read-only observer** of canonical data. It receives insert notifications at the route handler level (from `req.body` data already in scope) and performs periodic read-only SQL queries against canonical tables. It never writes to, modifies, or extends canonical tables or their schemas.
+
+#### Proposed Upstream Change
+
+Real DiSCO servers would benefit from built-in data ingestion statistics for operational monitoring. If adopted:
+1. Move endpoints from `/api/v1/prototype/dataStatistics/` to `/api/v1/statistics/`
+2. The H3 spatial cell could be computed at insert time and stored as a column on canonical tables (currently avoided to keep tables untouched)
+3. Time histogram bins could be maintained in a dedicated server-side statistics table
+4. The feature would be always-on (no capability gating needed)
+
+#### Files
+
+| File | Type | Purpose |
+|------|------|---------|
+| `statistics/StatisticsEngine.ts` | New | Core engine — bins, rebuild, queries |
+| `statistics/types.ts` | New | TypeScript interfaces for all statistics data |
+| `statistics/index.ts` | New | Barrel export + singleton |
+| `routes/prototype/dataStatistics.ts` | New | Express router for 4 GET endpoints |
+| `prototype/capabilities.ts` | Modified | Add `data_statistics` capability entry |
+| `routes/prototype/index.ts` | Modified | Mount `dataStatisticsRouter` |
+| `server.ts` | Modified | Engine init, route-level insert notifications, SPA fallback |
+| `dashboard-ui/*` | New | React dashboard app (entire new directory) |
 
 ---
 

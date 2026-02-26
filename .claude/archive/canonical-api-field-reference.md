@@ -136,6 +136,19 @@ These fields exist only on prototype endpoints and must never appear in canonica
 | `sensor_longitude` | Entity Report (extended) | `entity_report_lob` | `/api/v1/prototype/entityReportLob/getLatest` |
 | `sensor_altitude_m` | Entity Report (extended) | `entity_report_lob` | `/api/v1/prototype/entityReportLob/getLatest` |
 
+## Prototype-Only Endpoints (NOT in canonical DiSCO API)
+
+These endpoints exist only on the surrogate server and return entirely new response models (not extensions of canonical models).
+
+| Capability | Endpoint | Response Model | Canonical Tables Affected |
+|-----------|----------|---------------|--------------------------|
+| `data_statistics` | `GET /api/v1/prototype/dataStatistics/overview` | `StatisticsOverview` (new model) | None — reads canonical tables, does not modify them |
+| `data_statistics` | `GET /api/v1/prototype/dataStatistics/timeline` | `TimelineResponse` (new model) | None — aggregates from `latest_timestamp` columns |
+| `data_statistics` | `GET /api/v1/prototype/dataStatistics/heatmap` | `HeatmapResponse` (new model) | None — aggregates from `latitude`/`longitude` columns |
+| `data_statistics` | `GET /api/v1/prototype/dataStatistics/metrics` | `MetricsResponse` (new model) | None — aggregates from existing columns |
+
+**Note**: The `data_statistics` prototype does NOT add any fields to any canonical response model. It creates entirely new response types on entirely new endpoints. It does NOT add columns to any canonical database table. It reads canonical tables as-is using existing indexed columns (`latest_timestamp`, `latitude`, `longitude`).
+
 ---
 
 ## Known Past Deviations (Fixed)
