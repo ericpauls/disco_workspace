@@ -762,24 +762,48 @@ Generates realistic historical ELINT data for testing the server dashboard stati
 
 | Data Type | Volume | Description |
 |-----------|--------|-------------|
-| Entity Reports | ~1.6–1.8M | Individual sensor observations of emitters with signal params, geolocation, error ellipses, and LOB fields |
-| Position Reports | ~31K | Endpoint (sensor platform) positions over time — one per endpoint per minute of flight |
-| Live World Entities | ~1.5–2K | Fused track state — one entry per emitter per flight day, representing fusion pipeline output |
+| Entity Reports | ~3.0–3.5M | Individual sensor observations of emitters with signal params, geolocation, error ellipses, and LOB fields |
+| Position Reports | ~55–65K | Endpoint (sensor platform) positions over time — one per endpoint per minute of flight |
+| Live World Entities | ~3–5K | Fused track state — one entry per emitter per flight day, representing fusion pipeline output |
 
-**10 Named Scenarios (Jan–Dec 2025):**
+**23 Named Scenarios (Sep 2020 – Dec 2025):**
 
-| Scenario | Region | Endpoints | Entities | Days | Hours |
-|----------|--------|-----------|----------|------|-------|
-| Winter Exercise | Baltic Sea | 5 | 40–60 | 3 | 4h |
-| Pacific Patrol | South China Sea | 2 | 15–25 | 5 | 2h |
-| Desert Shield | Persian Gulf | 8 | 70–100 | 2 | 6h |
-| Med Cruise | E. Mediterranean | 3 | 25–35 | 7 | 3h |
-| Arctic Watch | Norwegian Sea | 1 | 8–12 | 2 | 1h |
-| Strait Patrol | Strait of Malacca | 4 | 30–50 | 10 | 2h |
-| Black Sea Intel | Black Sea | 6 | 50–70 | 4 | 3h |
-| Horn Response | Horn of Africa | 2 | 12–20 | 3 | 2h |
-| Pacific Thunder | Sea of Japan | 10 | 80–120 | 1 | 8h |
-| Year-End Review | South Atlantic | 3 | 20–30 | 5 | 2h |
+*Historical (2020-2023) — 5 scenarios providing visible spikes in the multi-year timeline:*
+
+| Scenario | Year | Region | Endpoints | Entities | Days | Hours |
+|----------|------|--------|-----------|----------|------|-------|
+| Aegean Intercept | 2020 | Aegean Sea | 3 | 20–35 | 4 | 2h |
+| Trident Juncture | 2021 | Norwegian Sea | 5 | 40–60 | 3 | 4h |
+| RIMPAC Echo | 2022 | Hawaii | 4 | 30–50 | 3 | 3h |
+| Canal Watch | 2023 | Panama Canal | 1 | 8–15 | 2 | 1h |
+| Nordic Shield | 2023 | Barents Sea | 3 | 25–40 | 3 | 3h |
+
+*2025 — 18 scenarios with dense, diverse coverage:*
+
+| Scenario | Month | Region | Endpoints | Entities | Days | Hours | Area° |
+|----------|-------|--------|-----------|----------|------|-------|-------|
+| Winter Exercise | Jan | Baltic Sea | 5 | 40–60 | 3 | 4h | 2.0 |
+| North Sea Vigil | Jan | North Sea | 1 | 5–8 | 1 | 1h | 0.2 |
+| Red Sea Guardian | Feb | Red Sea | 2 | 18–28 | 5 | 2h | 1.5 |
+| Pacific Patrol | Mar | South China Sea | 2 | 15–25 | 5 | 2h | 3.5 |
+| Caribbean Sentinel | Mar | Caribbean | 1 | 10–15 | 3 | 3h | 5.0 |
+| Desert Shield | Apr | Persian Gulf | 8 | 70–100 | 2 | 6h | 1.5 |
+| Formosa Watch | May | Taiwan Strait | 3 | 35–55 | 4 | 3h | 1.0 |
+| Gulf of Guinea Sweep | May | Gulf of Guinea | 1 | 6–10 | 2 | 2h | 3.0 |
+| Med Cruise | Jun | E. Mediterranean | 3 | 25–35 | 7 | 3h | 4.0 |
+| Philippine Sea Sweep | Jun | Philippine Sea | 2 | 12–20 | 2 | 4h | 7.0 |
+| Horn Patrol | Jul | Horn of Africa | 2 | 15–25 | 4 | 2h | 2.5 |
+| Arctic Watch | Jul | Norwegian Sea | 1 | 8–12 | 2 | 1h | 1.0 |
+| Strait Patrol | Aug | Malacca Strait | 4 | 30–50 | 10 | 2h | 0.5 |
+| Crimson Tide | Aug | Gibraltar | 6 | 80–120 | 3 | 8h | 0.8 |
+| Black Sea Intel | Sep | Black Sea | 6 | 50–70 | 4 | 3h | 2.0 |
+| Sevastopol Snapshot | Sep | Sevastopol | 1 | 5–8 | 1 | 1h | 0.2 |
+| Indian Ocean Overwatch | Oct | Indian Ocean | 2 | 20–30 | 6 | 2h | 6.0 |
+| Tartus Overwatch | Oct | Syria | 2 | 12–18 | 3 | 2h | 0.3 |
+| East China Sea Sentinel | Nov | E. China Sea | 1 | 10–18 | 4 | 2h | 2.0 |
+| Pacific Thunder | Nov | Sea of Japan | 10 | 80–120 | 1 | 8h | 2.5 |
+| Year-End Review | Dec | South Atlantic | 3 | 20–30 | 5 | 2h | 2.0 |
+| Solstice Check | Dec | Gibraltar | 1 | 3–6 | 1 | 1h | 0.5 |
 
 **7 Emitter Profiles** (weighted): Coastal Search Radar (30%), SA-20 Acquisition (15%), Nav Radar (15%), VHF Marine (15%), UHF Tactical (10%), Barrage Jammer (10%), EA System (5%). Each includes domain (MARITIME/LAND/AIR), platform type, and realistic signal parameters.
 
