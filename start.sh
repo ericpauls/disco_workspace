@@ -45,6 +45,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Project directories
 DASHBOARD_DIR="${SCRIPT_DIR}/dashboard"
 SERVER_DIR="${SCRIPT_DIR}/disco_surrogate_server"
+DASHBOARD_UI_DIR="${SCRIPT_DIR}/disco_surrogate_server/dashboard-ui"
 EMULATOR_DIR="${SCRIPT_DIR}/disco_data_emulator"
 CLIENT_DIR="${SCRIPT_DIR}/disco_live_world_client_ui"
 
@@ -356,10 +357,11 @@ check_dependencies() {
         fi
     done
 
-    # --- Check npm dependencies (Dashboard, Surrogate Server, Client UI) ---
+    # --- Check npm dependencies (Dashboard, Surrogate Server, Dashboard UI, Client UI) ---
     local npm_dirs_to_check=(
         "$DASHBOARD_DIR:Dashboard"
         "$SERVER_DIR:Surrogate Server"
+        "$DASHBOARD_UI_DIR:Server Dashboard UI"
         "$CLIENT_DIR:Client UI"
     )
 
@@ -406,6 +408,25 @@ check_dependencies() {
                 exit 1
             fi
         done
+    fi
+
+    # --- Build Server Dashboard UI if bundle is missing ---
+    if [[ -d "$DASHBOARD_UI_DIR" ]] && has_dependencies "$DASHBOARD_UI_DIR"; then
+        if ! ls "${SERVER_DIR}/public/assets/"*.js 1>/dev/null 2>&1; then
+            print_warning "Server Dashboard UI needs building"
+            # Ensure vite-env.d.ts exists (gitignored by *.d.ts rule, but required for tsc)
+            if [[ ! -f "${DASHBOARD_UI_DIR}/src/vite-env.d.ts" ]]; then
+                echo '/// <reference types="vite/client" />' > "${DASHBOARD_UI_DIR}/src/vite-env.d.ts"
+            fi
+            print_info "Building dashboard UI (this only needs to happen once)..."
+            if (cd "$DASHBOARD_UI_DIR" && npm run build); then
+                print_success "Server Dashboard UI built successfully"
+            else
+                print_warning "Server Dashboard UI build failed — dashboard page will be unavailable"
+            fi
+        else
+            print_success "Server Dashboard UI bundle found"
+        fi
     fi
 
     # --- Check Python dependencies (Data Emulator) ---

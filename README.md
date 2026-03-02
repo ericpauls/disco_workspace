@@ -1,288 +1,274 @@
 # DiSCO Workspace
 
-A unified development environment for the DiSCO (Distributed Intelligence, Surveillance, and Communications Operations) data visualization system. This workspace contains both the server emulator and client UI as git submodules.
+A unified development environment for the DiSCO (Distributed Intelligence, Surveillance, and Communications Operations) data visualization system. This workspace orchestrates four components — a surrogate API server, a data emulator, a React client UI, and an orchestration dashboard — via git submodules and a unified start script.
 
 ## Overview
 
 | Component | Description | Default Port |
 |-----------|-------------|--------------|
-| **disco_data_emulator** | Mock DiSCO server generating simulated entity data | 8765 |
-| **disco_live_world_client_ui** | React UI for real-time map visualization | 3000 |
+| **Orchestration Dashboard** | Web UI for managing and monitoring all services | 8880 |
+| **disco_surrogate_server** | Local mock of the real DiSCO API server + built-in data dashboard | 8765 |
+| **disco_data_emulator** | Scenario-driven simulation engine that generates entity/position data | 8766 |
+| **disco_live_world_client_ui** | React map UI for real-time entity visualization | 3000 |
 
 ## Prerequisites
 
-- **Node.js**: v18.0.0 or higher
-- **npm**: v9.0.0 or higher (comes with Node.js)
-- **Git**: For submodule management
+- **Node.js**: v18+ (recommended v25.2.1+)
+- **Python 3**: v3.10+ (for the data emulator)
+- **npm**: comes with Node.js
+- **Git**: for submodule management
 
 Verify your installation:
 
 ```bash
-node --version    # Should show v18.x.x or higher
-npm --version     # Should show v9.x.x or higher
-git --version     # Any recent version
+node --version      # Should show v18.x.x or higher
+python3 --version   # Should show 3.10.x or higher
+git --version       # Any recent version
 ```
 
 ## Quick Start
 
-### Initial Setup (First Time Only)
+### Option A: Unified Start Script (Recommended)
 
-After cloning the repository, initialize the submodules and install dependencies:
+The start script handles everything — dependency checks, installation prompts, building, and launching all services:
 
 ```bash
-# 1. Clone the repository (if not already done)
+# macOS / Linux
+./start.sh
+
+# Windows
+start.bat
+```
+
+On first run the script will:
+1. Check git submodules are initialized (prompts to fix if not)
+2. Detect missing npm dependencies for all 4 projects and prompt to install
+3. Detect missing Python virtual environment for the emulator and prompt to set up
+4. Build the surrogate server's dashboard UI if the bundle is missing
+5. Start the orchestration dashboard (port 8880), which auto-starts all 3 services
+6. Open the dashboard in your browser
+
+### Option B: Manual Setup (First Time)
+
+If you prefer to set up manually, or if the start script encounters issues:
+
+```bash
+# 1. Clone and initialize submodules
 git clone <repository-url>
 cd disco_workspace
-
-# 2. Initialize and update submodules
 git submodule update --init --recursive
 
-# 3. Install dependencies for both projects
-cd disco_data_emulator && npm install && cd ..
+# 2. Install npm dependencies (4 projects)
+cd dashboard && npm install && cd ..
+cd disco_surrogate_server && npm install && cd ..
+cd disco_surrogate_server/dashboard-ui && npm install && cd ..
 cd disco_live_world_client_ui && npm install && cd ..
+
+# 3. Set up Python virtual environment for the emulator
+cd disco_data_emulator
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+deactivate
+cd ..
+
+# 4. Build the surrogate server's dashboard UI (one-time)
+cd disco_surrogate_server/dashboard-ui && npm run build && cd ../..
+
+# 5. Start everything
+./start.sh                       # or start.bat on Windows
 ```
 
-Or use the unified start script (it will prompt to install dependencies):
+### After Pulling / Switching Branches
+
+Always sync submodules after pulling or changing branches:
 
 ```bash
-./start.sh
+git pull
+git submodule update --init --recursive
 ```
 
-### Starting Both Services
+If dependencies changed, re-run the start script with `--force-install` or manually `npm install` in the affected project(s).
 
-The easiest way to run both services is with the unified start script:
+## Start Script Options
 
 ```bash
-./start.sh
+./start.sh --help                # Show all options
+./start.sh --dashboard-only      # Start only the dashboard (manage services manually)
+./start.sh --force-install       # Reinstall all dependencies
+./start.sh --no-browser          # Don't open browser automatically
+./start.sh --skip-install        # Fail if any deps are missing (CI mode)
 ```
 
-This will:
-1. Check for existing processes on ports 8765 and 3000
-2. Kill any existing processes (with notification)
-3. Verify dependencies are installed
-4. Start the server and wait for it to be ready
-5. Start the client
-6. Display status URLs
-7. Handle Ctrl+C gracefully to stop both
+## Using the Dashboard
 
-### Start Script Options
+Once running, open **http://127.0.0.1:8880** (opens automatically).
 
-```bash
-./start.sh --help                    # Show all options
-./start.sh --scenario stress-tiny    # Use 100 entities (faster startup)
-./start.sh --server-port 9000        # Custom server port
-./start.sh --client-port 4000        # Custom client port
-./start.sh --force-install           # Reinstall all dependencies
-```
+The orchestration dashboard shows:
+- **Service status** — start/stop/monitor each service individually
+- **Simulation control** — select a scenario config and start/stop simulations
+- **Data flow** — visual diagram of data flowing between emulator → server → client
+- **Service logs** — real-time log output from all services
+
+### Starting a Simulation
+
+1. Select a scenario from the dropdown (e.g., "correlation-test")
+2. Click "Start Simulation"
+3. Open the **Client UI** at http://127.0.0.1:3000 to see entities on the map
+4. Open the **Server Dashboard** at http://127.0.0.1:8765/dashboard for data statistics
 
 ### Available Scenarios
 
-| Scenario | Entities | Use Case |
-|----------|----------|----------|
-| `stress-tiny` | 100 | Quick testing |
-| `stress-tiny-fast` | 100 | Trail visualization testing (1000x speed) |
-| `stress-small` | 1,000 | **Default** - typical development |
-| `stress-small-fast` | 1,000 | Trail stress testing (1000x speed) |
-| `stress-medium` | 5,000 | Moderate load testing |
-| `stress-large` | 10,000 | Heavy load testing |
-| `stress-extreme` | 25,000 | Maximum stress testing |
-| `contested-maritime` | 80 | Realistic South China Sea scenario |
+| Scenario | Entities | Endpoints | Description |
+|----------|----------|-----------|-------------|
+| `debug-single` | 1 | 1 | Minimal — geolocation debug |
+| `lob-test` | 1 | 4 | LOB visualization test |
+| `sample-dees-config` | 20 | 3 | Demo with air/maritime/land endpoints |
+| `endpoint-test` | 100 | 3 | South China Sea scenario |
+| `correlation-test` | 100 | 12 | Full DF/AOA correlation scenario |
+| `stress-tiny` | 100 | 0 | Quick sanity check |
+| `stress-tiny-fast` | 100 | 0 | Trail visualization (1000x speed) |
+| `density-gradient` | 200 | 10 | Gaussian-cluster density test |
+| `stress-small` | 1,000 | 0 | Typical development |
+| `stress-small-fast` | 1,000 | 0 | Trail stress testing (1000x speed) |
+| `stress-medium` | 5,000 | 0 | Moderate load testing |
+| `stress-large` | 10,000 | 0 | Heavy load testing |
+| `stress-extreme` | 25,000 | 0 | Maximum stress testing |
+| `contested-maritime` | 85 | 0 | Realistic Indo-Pacific scenario |
 
-## Individual Project Commands
+To generate new scenario configs: `cd disco_data_emulator && ./generate-config.sh`
 
-### Server (disco_data_emulator)
+## Individual Service Commands
+
+### Surrogate Server
+
+```bash
+cd disco_surrogate_server
+npm run dev          # Start with file watching (port 8765)
+npm start            # Start without file watching
+```
+
+The server dashboard (data statistics, heatmap, rates) is at http://127.0.0.1:8765/dashboard.
+
+### Data Emulator
 
 ```bash
 cd disco_data_emulator
-
-# Using npm
-npm start                           # Default configuration
-npm start -- stress-medium          # Custom scenario
-PORT=9000 npm start                 # Custom port
-
-# Using start script
-./start.sh                          # Default: port 8765, 1K entities
-./start.sh --scenario stress-tiny   # 100 entities
-./start.sh --port 9000              # Custom port
+source .venv/bin/activate
+PYTHONUNBUFFERED=1 PYTHONPATH="." python3 -m endpoint_emulator.emulator_server
+# Runs on port 8766, API at http://127.0.0.1:8766/api
 ```
 
-### Client (disco_live_world_client_ui)
+### Client UI
 
 ```bash
 cd disco_live_world_client_ui
-
-# Using npm
-npm run dev                         # Default configuration
-npm run dev -- --port 4000          # Custom port
-
-# Using start script (if available)
-./start.sh                          # Default: port 3000
-```
-
-## Port Information
-
-| Service | Default Port | Description |
-|---------|--------------|-------------|
-| Server API | 8765 | DiSCO API endpoints at `/api/v1/*` |
-| Client UI | 3000 | React development server |
-
-### API Endpoints
-
-When the server is running, the following endpoints are available:
-
-- **Health Check**: http://127.0.0.1:8765/api/v1/health
-- **Entity Data**: http://127.0.0.1:8765/api/v1/liveWorldModel/getLatest
-- **Simulation Status**: http://127.0.0.1:8765/api/v1/simulation/status
-
-## Troubleshooting
-
-### Port Already in Use
-
-**Symptom**: Error message about port being in use
-
-**Solution**: The unified `./start.sh` script automatically handles this. For manual cleanup:
-
-```bash
-# Find process using the port
-lsof -i :8765
-
-# Kill the process
-kill <PID>
-
-# Or force kill
-kill -9 <PID>
-```
-
-### Dependencies Missing
-
-**Symptom**: "Module not found" or "command not found" errors (e.g., `tsx: command not found`, `vite: command not found`)
-
-**Solution**:
-
-```bash
-# Reinstall dependencies for both projects
-cd disco_data_emulator && npm install && cd ..
-cd disco_live_world_client_ui && npm install && cd ..
-
-# Or use the force-install option
-./start.sh --force-install
-```
-
-### Submodules Not Initialized
-
-**Symptom**: Empty project directories or "directory not found" errors
-
-**Solution**:
-
-```bash
-git submodule update --init --recursive
-```
-
-### Server Not Responding
-
-**Symptom**: Client shows connection errors or server health check fails
-
-**Solutions**:
-
-1. Ensure server is running:
-   ```bash
-   curl http://127.0.0.1:8765/api/v1/health
-   ```
-
-2. Check server logs for errors
-
-3. Verify correct port configuration
-
-### Client Not Loading
-
-**Symptom**: Browser shows blank page or connection errors
-
-**Solutions**:
-
-1. Check browser console for errors (F12 -> Console)
-2. Verify client URL: http://127.0.0.1:3000
-3. Ensure server is running first
-4. Try clearing browser cache
-
-### Node Version Issues
-
-**Symptom**: Syntax errors or unexpected behavior
-
-**Solution**: Ensure Node.js v18+:
-
-```bash
-# Check current version
-node --version
-
-# If using nvm, switch to v18+
-nvm use 18
+npm run dev          # Vite dev server on port 3000
 ```
 
 ## Project Structure
 
 ```
 disco_workspace/
-├── start.sh                      # Unified launcher script
+├── start.sh / start.bat          # Unified launcher (handles deps + startup)
 ├── README.md                     # This file
-├── .gitmodules                   # Submodule configuration
-├── .gitignore                    # Git ignore rules
-├── .claude/                      # Shared documentation
-│   ├── CLAUDE.md                 # Project overview
-│   ├── api-reference.md          # DiSCO API documentation
-│   ├── schemas.md                # Entity data models
-│   └── ...                       # Additional docs
-├── disco_data_emulator/          # Server submodule
-│   ├── start.sh                  # Server start script
-│   ├── server.ts                 # Express server entry
-│   ├── simulation/               # Simulation engine
-│   └── ...
-└── disco_live_world_client_ui/   # Client submodule
-    ├── src/                      # React source code
-    ├── vite.config.js            # Vite configuration
-    └── ...
+├── dashboard/                    # Orchestration dashboard (port 8880)
+│   ├── server.ts                 # Express server managing all services
+│   └── public/                   # Dashboard web UI
+├── disco_surrogate_server/       # Surrogate DiSCO API server (port 8765)
+│   ├── server.ts                 # Express API server
+│   ├── dashboard-ui/             # React SPA for server data dashboard
+│   │   ├── src/                  # React/TypeScript source
+│   │   └── vite.config.ts        # Builds to ../public/
+│   └── public/                   # Built dashboard assets (served at /dashboard)
+├── disco_data_emulator/          # Scenario simulation engine (port 8766)
+│   ├── endpoint_emulator/        # Flask server + simulation engine
+│   ├── scenario_generator/       # Config generation from Python templates
+│   ├── configs/                  # Generated JSON scenario configs
+│   └── .venv/                    # Python virtual environment
+├── disco_live_world_client_ui/   # React client UI (port 3000)
+│   ├── src/                      # React source code
+│   └── javascript-client/        # Canonical DiSCO API reference
+├── docs/                         # Architecture diagrams
+│   ├── c4-architecture-diagram.md
+│   ├── data-architecture-erd.md
+│   └── system-architecture-diagram.md
+└── .claude/                      # Development docs and project memory
+    ├── CLAUDE.md                 # AI assistant instructions
+    └── archive/                  # Detailed architecture docs
 ```
 
-## Development Workflow
+## API Endpoints
 
-### Updating Submodules
+When the surrogate server is running:
 
-To pull the latest changes for both submodules:
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/v1/health` | Server health, data counts, prototype capabilities |
+| `GET /api/v1/liveWorldModel/getLatest` | Current live world entities |
+| `GET /api/v1/entityReport/getLatest` | Recent entity reports |
+| `GET /api/v1/positionReport/getLatest` | Recent position reports |
+| `GET /dashboard` | Server data dashboard (React SPA) |
+
+## Troubleshooting
+
+### Port Already in Use
+
+The start script automatically detects and offers to kill processes on occupied ports. For manual cleanup:
 
 ```bash
-git submodule update --remote
+lsof -i :8765 -i :8766 -i :3000 -i :8880    # Find processes
+kill <PID>                                      # Stop a process
 ```
 
-### Making Changes
-
-Each submodule has its own git repository. Make commits within each project:
+### Dependencies Missing
 
 ```bash
-# Server changes
+# Reinstall everything
+./start.sh --force-install
+
+# Or manually for a specific project
+cd disco_surrogate_server && npm install
+cd disco_surrogate_server/dashboard-ui && npm install && npm run build
+cd disco_live_world_client_ui && npm install
+cd disco_data_emulator && source .venv/bin/activate && pip install -r requirements.txt
+```
+
+### Server Dashboard Shows Blank Page
+
+The surrogate server dashboard is a React SPA that must be built before use:
+
+```bash
+cd disco_surrogate_server/dashboard-ui
+npm install       # If node_modules is missing
+npm run build     # Builds to ../public/assets/
+```
+
+The start script does this automatically. If the dashboard page is blank, the JS bundle is likely missing from `disco_surrogate_server/public/assets/`.
+
+### Submodules Not Initialized
+
+```bash
+git submodule update --init --recursive
+```
+
+### Python Virtual Environment Issues
+
+```bash
 cd disco_data_emulator
-git add .
-git commit -m "Your message"
-git push
-
-# Client changes
-cd disco_live_world_client_ui
-git add .
-git commit -m "Your message"
-git push
-
-# Update workspace to point to new commits
-cd ..
-git add disco_data_emulator disco_live_world_client_ui
-git commit -m "Update submodules"
-git push
+rm -rf .venv                          # Start fresh
+python3 -m venv .venv
+source .venv/bin/activate             # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
 ## Documentation
 
-Additional documentation is available in the `.claude/` directory:
+Architecture and design documentation:
 
-- `CLAUDE.md` - Project overview and quick reference
-- `api-reference.md` - Complete DiSCO API documentation
-- `schemas.md` - Entity data models and schemas
-- `disco-overview.md` - Product context and background
-- `known-issues.md` - Known bugs and limitations
-- `client-roadmap.md` - Development roadmap
+- `docs/c4-architecture-diagram.md` — C4 model (context, container, component)
+- `docs/data-architecture-erd.md` — Entity relationship diagram with UUID system
+- `docs/system-architecture-diagram.md` — System flowchart and data flows
+- `.claude/archive/disco-data-architecture.md` — Complete data architecture reference
+- `.claude/archive/disco-overview.md` — Product context and background
+- `.claude/archive/known-issues.md` — Known bugs and limitations

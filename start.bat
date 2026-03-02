@@ -48,6 +48,7 @@ set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 REM Project directories
 set "DASHBOARD_DIR=%SCRIPT_DIR%\dashboard"
 set "SERVER_DIR=%SCRIPT_DIR%\disco_surrogate_server"
+set "DASHBOARD_UI_DIR=%SCRIPT_DIR%\disco_surrogate_server\dashboard-ui"
 set "EMULATOR_DIR=%SCRIPT_DIR%\disco_data_emulator"
 set "CLIENT_DIR=%SCRIPT_DIR%\disco_live_world_client_ui"
 
@@ -214,6 +215,7 @@ if not exist "%CLIENT_DIR%" (
 
 set "DASHBOARD_NEEDS_INSTALL=false"
 set "SERVER_NEEDS_INSTALL=false"
+set "DASHBOARD_UI_NEEDS_INSTALL=false"
 set "CLIENT_NEEDS_INSTALL=false"
 
 REM Check dashboard dependencies
@@ -237,6 +239,18 @@ if "%FORCE_INSTALL%"=="true" (
     ) else (
         echo [WARN] Surrogate Server dependencies missing
         set "SERVER_NEEDS_INSTALL=true"
+    )
+)
+
+REM Check server dashboard-ui dependencies
+if "%FORCE_INSTALL%"=="true" (
+    set "DASHBOARD_UI_NEEDS_INSTALL=true"
+) else (
+    if exist "%DASHBOARD_UI_DIR%\node_modules" (
+        echo [OK] Server Dashboard UI dependencies found
+    ) else (
+        echo [WARN] Server Dashboard UI dependencies missing
+        set "DASHBOARD_UI_NEEDS_INSTALL=true"
     )
 )
 
@@ -280,6 +294,7 @@ REM Check if any npm projects need install
 set "ANY_NEED_INSTALL=false"
 if "%DASHBOARD_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 if "%SERVER_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
+if "%DASHBOARD_UI_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 if "%CLIENT_NEEDS_INSTALL%"=="true" set "ANY_NEED_INSTALL=true"
 
 if not "%ANY_NEED_INSTALL%"=="true" goto :dependencies_ok
@@ -343,6 +358,44 @@ if "%CLIENT_NEEDS_INSTALL%"=="true" (
     )
     popd
     echo [OK] Client UI dependencies installed
+)
+
+REM Install server dashboard-ui dependencies
+if "%DASHBOARD_UI_NEEDS_INSTALL%"=="true" (
+    echo [INFO] Installing dependencies for Server Dashboard UI...
+    pushd "%DASHBOARD_UI_DIR%"
+    call npm install
+    if errorlevel 1 (
+        popd
+        echo [WARN] Failed to install Server Dashboard UI dependencies
+        goto :dashboard_ui_build_check
+    )
+    popd
+    echo [OK] Server Dashboard UI dependencies installed
+)
+
+:dashboard_ui_build_check
+REM --- Build Server Dashboard UI if bundle is missing ---
+if exist "%DASHBOARD_UI_DIR%\node_modules" (
+    dir /b "%SERVER_DIR%\public\assets\*.js" >nul 2>&1
+    if errorlevel 1 (
+        echo [WARN] Server Dashboard UI bundle missing - building...
+        REM Ensure vite-env.d.ts exists (gitignored by *.d.ts rule, but required for tsc)
+        if not exist "%DASHBOARD_UI_DIR%\src\vite-env.d.ts" (
+            echo /// ^<reference types="vite/client" /^>> "%DASHBOARD_UI_DIR%\src\vite-env.d.ts"
+        )
+        pushd "%DASHBOARD_UI_DIR%"
+        call npm run build
+        if errorlevel 1 (
+            popd
+            echo [WARN] Server Dashboard UI build failed - dashboard page will be unavailable
+        ) else (
+            popd
+            echo [OK] Server Dashboard UI built successfully
+        )
+    ) else (
+        echo [OK] Server Dashboard UI bundle found
+    )
 )
 
 :dependencies_ok
