@@ -120,8 +120,9 @@ flowchart LR
         end
 
         subgraph proto_apis["Prototype APIs"]
-            obsctx_api["ObsContext"]
+            lob_api["EntityReportLob"]
             datastats_api["DataStatistics"]
+            batchupsert_api["BatchUpsert"]
         end
 
         stats_engine["<b>StatisticsEngine</b><br/><i>In-memory bins<br/>H3 spatial + time</i>"]
@@ -162,7 +163,7 @@ flowchart LR
 
     class express,entities,positions,liveworld,fusedMapping,fusedSummary,health comp
     class e_db,p_db,lw_db,fm_db,fs_db comp
-    class obsctx_api,datastats_api,oc_db,stats_engine,dashboard_ui proto
+    class lob_api,datastats_api,batchupsert_api,oc_db,stats_engine,dashboard_ui proto
     class server sbox
     class emulator,client ext
     class apis,stores,proto_apis inner
@@ -359,7 +360,7 @@ flowchart TB
 
 4. **API Compatibility**: The surrogate server implements the same REST API as production DiSCO, enabling seamless transition to real infrastructure
 
-5. **SQLite Storage**: The surrogate server uses SQLite (in-memory via better-sqlite3) with R-tree spatial indexing, FIFO eviction at 100K records, and a 2 GB database size limit with tiered warnings
+5. **SQLite Storage**: The surrogate server uses SQLite (in-memory via better-sqlite3) with R-tree spatial indexing for entity/position reports. FIFO eviction enforces max record limits (1M entities, 100K positions/mappings/summaries) using a boundary-based DELETE approach (single `DELETE WHERE id <= ?` instead of `IN(...)` to avoid SQLite's 32K bind parameter limit). A 2 GB database size limit with tiered warnings is also enforced
 
 6. **Idle-Start Emulator**: The emulator starts without a running simulation; users select a JSON config file via the dashboard before data flows
 

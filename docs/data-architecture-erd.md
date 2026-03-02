@@ -239,7 +239,7 @@ flowchart LR
 | `liveWorldModel` | ✓ Implemented | Currently shows truth data directly |
 | `fusedEntityMapping` | API Implemented | Correlation service output (9 endpoints) |
 | `fusedEntitySummary` | API Implemented | Summarization service output (9 endpoints) |
-| `observation_context` | PROTOTYPE | AOA/LOB data from NEVER endpoints (non-canonical, capability-gated) |
+| `entity_report_lob` | PROTOTYPE | Extended entity reports with LOB fields — sensor position + bearing (capability key: `entity_report_lob`, non-canonical, capability-gated) |
 
 ## Key Design Principles
 

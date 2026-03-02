@@ -353,6 +353,56 @@ Add new filtering features to allow users to view only specific types of entitie
 
 ---
 
+### FIFO Eviction SQLite Bind Parameter Limit
+**Status**: COMPLETED (2026-03-01)
+**Priority**: Critical
+**Created**: 2026-03-01
+
+**Description**:
+The FIFO eviction system in all 4 surrogate server repositories (Entity, Position, FusedEntityMapping, FusedEntitySummary) built `DELETE ... WHERE id IN (?, ?, ...)` clauses with one bind parameter per row to delete. When the excess was large (e.g., after synthetic data generation of 3M+ records needing eviction to 1M), this hit SQLite's hard limit of 32,766 bind parameters per query, causing eviction to fail silently.
+
+Additionally, the synthetic data generator used raw SQL inserts via `db.transaction()`, bypassing repository `add()` methods, so `evictIfNeeded()` never triggered during generation.
+
+**Resolution**:
+1. Replaced `IN(?, ?, ...)` with boundary-based DELETE: `SELECT id ... LIMIT 1 OFFSET N-1` to find cutoff, then `DELETE WHERE id <= ?` (1 bind parameter regardless of row count)
+2. Made `evictIfNeeded()` public on all repositories
+3. Added explicit `evictIfNeeded()` calls in `server.ts` after synthetic data generation
+
+**Related Files**:
+- `disco_surrogate_server/db/EntityRepository.ts`
+- `disco_surrogate_server/db/PositionRepository.ts`
+- `disco_surrogate_server/db/FusedEntityMappingRepository.ts`
+- `disco_surrogate_server/db/FusedEntitySummaryRepository.ts`
+- `disco_surrogate_server/server.ts`
+
+---
+
+### Non-Canonical API Audit — 4 Issues Fixed
+**Status**: COMPLETED (2026-03-01)
+**Priority**: Medium
+**Created**: 2026-03-01
+
+**Description**:
+Comprehensive audit of all prototype API usage across the entire codebase found 4 issues with the graceful degradation pattern:
+
+1. **Emulator LOB field leak (HIGH)**: When `entity_report_lob` capability was absent, emulator fell back to canonical `batchInsert` but still included LOB fields (`observation_bearing_deg`, etc.) which could be rejected by a real DiSCO server. **Fix**: Strip LOB fields before canonical submission.
+
+2. **LOBLayerManager not capability-gated (LOW)**: Component was always rendered regardless of capability. **Fix**: Gate with `hasCapability('entity_report_lob')` in `MapView.tsx`.
+
+3. **Distance column default:true (LOW)**: `entityReportColumns.ts` showed distance column by default, but the field is empty without LOB capability. **Fix**: Changed to `default: false`.
+
+4. **Dashboard had no capability probing (MEDIUM)**: The dashboard UI called `data_statistics` prototype endpoints unconditionally with no `/api/v1/health` probe. **Fix**: Created `DashboardCapabilitiesContext`, wired into `main.tsx`, gated `StatisticsPanel` with `hasCapability('data_statistics')`.
+
+**Related Files**:
+- `disco_data_emulator/endpoint_emulator/simulation/simulation_engine.py`
+- `disco_live_world_client_ui/src/components/MapView.tsx`
+- `disco_live_world_client_ui/src/config/entityReportColumns.ts`
+- `disco_surrogate_server/dashboard-ui/src/contexts/DashboardCapabilitiesContext.tsx`
+- `disco_surrogate_server/dashboard-ui/src/main.tsx`
+- `disco_surrogate_server/dashboard-ui/src/App.tsx`
+
+---
+
 ## Completed Features
 
 ### Entity Selection Without Map Centering

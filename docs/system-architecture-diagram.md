@@ -70,6 +70,13 @@ flowchart LR
 
 The surrogate server supports an optional `/api/v1/prototype/` namespace for experimental features not in the canonical DiSCO API. Components discover available prototypes via the `prototype_capabilities` field in `/api/v1/health`. When connected to a real DiSCO server (which lacks this field), all prototype features are silently disabled. See `.claude/CLAUDE.md` "Prototype Endpoint Rule" for the full policy.
 
+**Active prototypes** (3 capabilities):
+- `entity_report_lob` — Extended entity reports with LOB fields (sensor position + bearing) for LOB visualization
+- `live_world_batch_upsert` — Batch upsert for live world entities (single POST vs N POST/PUTs)
+- `data_statistics` — Temporal/spatial data statistics for dashboard visualization (read-only observer)
+
+**Capability gating**: All three UI applications (Client UI, Dashboard UI, Emulator) probe `/api/v1/health` on startup and periodically re-probe every 60s. Each uses a `hasCapability(key)` pattern to conditionally enable prototype features. See `disco-data-architecture.md` Section 11.2 for details.
+
 ### Future Implementation (Dashed Lines)
 
 1. **Entity Reports → Correlation → Summarization → Live World**: The fusion pipeline will correlate observations from multiple endpoints and produce fused positions
@@ -108,9 +115,14 @@ sequenceDiagram
         E->>S: POST /api/v1/liveWorldModel (new)
         E->>S: PUT /api/v1/liveWorldModel (updates)
 
-        opt Prototype: observation_context capability
-            E->>S: POST /api/v1/prototype/observationContext/batchInsert
-            Note over E,S: NEVER endpoints report raw AOA bearings
+        opt Prototype: entity_report_lob capability
+            E->>S: POST /api/v1/prototype/entityReportLob/batchInsert
+            Note over E,S: NEVER endpoints report raw AOA bearings + sensor position
+        end
+
+        opt Prototype: live_world_batch_upsert capability
+            E->>S: POST /api/v1/prototype/liveWorldModel/batchUpsert
+            Note over E,S: Single transactional batch instead of per-entity POST/PUT
         end
     end
 
@@ -123,10 +135,16 @@ sequenceDiagram
         S-->>C: Position reports
         C->>C: POST /api/client-stats/update (to Vite plugin)
 
-        opt Prototype: observation_context capability
-            C->>S: GET /api/v1/prototype/observationContext/getLatest
-            S-->>C: LOB observation contexts
+        opt Prototype: entity_report_lob capability
+            C->>S: GET /api/v1/prototype/entityReportLob/getLatest
+            S-->>C: Entity reports with LOB fields
         end
+    end
+
+    loop Every 3s (Dashboard UI Polling)
+        Note over S: Dashboard UI is served from surrogate server
+        S->>S: GET /api/v1/prototype/dataStatistics/overview
+        S-->>S: Statistics overview (gated by data_statistics capability)
     end
 
     loop Every 3s (Dashboard Polling)

@@ -642,7 +642,37 @@ The live world model has entries from two different sources:
 
 Both types appear on the Common Operating Picture as distinct entity types.
 
-### 9.4 Why group_uuid Matters
+### 9.4 Storage Management: FIFO Eviction
+
+The surrogate server enforces maximum record limits on all data tables using FIFO (First-In, First-Out) eviction. When a table exceeds its configured `maxSize`, the oldest records (by autoincrement `id`) are deleted to maintain the limit.
+
+**Table Limits:**
+
+| Table | Max Records | Notes |
+|-------|-------------|-------|
+| `entity_reports` | 1,000,000 | Includes R-tree spatial index |
+| `position_reports` | 100,000 | Includes R-tree spatial index |
+| `fused_entity_mappings` | 100,000 | Single table |
+| `fused_entity_summaries` | 100,000 | Single table |
+
+**Eviction Algorithm (boundary-based DELETE):**
+
+Each repository's `evictIfNeeded()` method:
+1. Count total rows via `SELECT COUNT(*) FROM table`
+2. If `count <= maxSize`, return (no eviction needed)
+3. Compute `excess = count - maxSize`; pad with 1% of maxSize (amortizes eviction cost)
+4. Find boundary: `SELECT id FROM table ORDER BY id ASC LIMIT 1 OFFSET (evictCount - 1)`
+5. Delete in transaction: `DELETE FROM table WHERE id <= ?` (and corresponding R-tree rows if applicable)
+
+**Why boundary-based?** An earlier implementation used `DELETE ... WHERE id IN (SELECT id ... LIMIT N)`, which built an `IN(?, ?, ...)` clause with one bind parameter per row. This hit SQLite's 32,766 bind parameter limit when excess was large (e.g., after synthetic data generation). The boundary-based approach uses exactly 1 bind parameter regardless of how many rows are deleted.
+
+**Eviction triggers:**
+- `add()` / `addBatch()` — checked after every insert
+- `evictIfNeeded()` called explicitly after synthetic data generation (because the generator uses raw SQL, bypassing repository methods)
+
+**Interaction with Statistics Engine:** After synthetic data generation, eviction runs first, then `statisticsEngine.rebuild()` is called to reindex the (now-trimmed) dataset.
+
+### 9.5 Why group_uuid Matters
 
 The `group_uuid` enables critical data provenance:
 
@@ -875,8 +905,24 @@ Clients MUST treat its absence as "no prototypes available" and silently disable
 | Component | How it discovers capabilities | How it gates features |
 |-----------|-------------------------------|----------------------|
 | **Surrogate Server** | N/A — it IS the capability source | Registers in `prototype/capabilities.ts` |
-| **Client UI** | `ServerCapabilitiesContext` probes `/api/v1/health` on connect | `hasCapability(key)` hook |
+| **Client UI** | `ServerCapabilitiesContext` probes `/api/v1/health` on connect + every 60s | `hasCapability(key)` hook via `useServerCapabilities()` |
+| **Dashboard UI** | `DashboardCapabilitiesContext` probes `/api/v1/health` on mount + every 60s | `hasCapability(key)` hook via `useDashboardCapabilities()` |
 | **Data Emulator** | `_probe_capabilities()` called on simulation start | `_has_capability(key)` method |
+
+#### Graceful Degradation Pattern
+
+All capability contexts follow the same pattern:
+
+1. **Probe** `/api/v1/health` and read `data.prototype_capabilities ?? {}`
+2. **On failure** (network error, non-200 status, missing field): set capabilities to `{}` — all prototype features disabled
+3. **Re-probe** every 60 seconds to detect server restarts or capability changes
+4. **Components check** `hasCapability(key)` which returns `true` only if the key exists AND `enabled === true`
+5. **When disabled**, prototype UI components are not rendered (not hidden, not error state — simply absent from the React tree)
+
+This ensures all applications work correctly against:
+- A real DiSCO server (no `prototype_capabilities` field → all prototypes disabled)
+- A surrogate server with individual capabilities disabled in `capabilities.ts`
+- A surrogate server that restarts mid-session (re-probe picks up changes)
 
 ### 11.3 URL Namespace
 
@@ -1063,6 +1109,121 @@ Real DiSCO servers would benefit from built-in data ingestion statistics for ope
 | `routes/prototype/index.ts` | Modified | Mount `dataStatisticsRouter` |
 | `server.ts` | Modified | Engine init, route-level insert notifications, SPA fallback |
 | `dashboard-ui/*` | New | React dashboard app (entire new directory) |
+
+### 11.6 `entity_report_lob` — Detailed Specification
+
+> **PROTOTYPE — NOT PART OF CANONICAL DiSCO API**
+> Capability key: `entity_report_lob`
+
+#### Overview
+
+Extends entity reports with Line-of-Bearing (LOB) fields — the observing sensor's position and the measured bearing to the entity. This data enables LOB line visualization on the map (drawing a line from sensor position along the observed bearing) and supports client-side geolocation from multiple bearings.
+
+#### Canonical Impact: MINIMAL
+
+The `entity_reports` SQLite table has 5 additional nullable columns (see Section 3.6). These columns are:
+- NULL for all reports submitted via canonical endpoints
+- Populated only by the prototype `batchInsert` endpoint
+- **Never returned** by canonical `GET /api/v1/entities/getLatest` — only by prototype `GET /api/v1/prototype/entityReportLob/getLatest`
+
+#### API Endpoints
+
+**`POST /api/v1/prototype/entityReportLob/batchInsert`** — Submit entity reports with LOB fields
+- Request body: same as canonical `batchInsert` but each report MAY include `observation_bearing_deg`, `observation_distance_km`, `sensor_latitude`, `sensor_longitude`, `sensor_altitude_m`
+- Response: same as canonical `batchInsert`
+
+**`GET /api/v1/prototype/entityReportLob/getLatest`** — Get latest entity reports WITH LOB fields
+- Query params: same as canonical `getLatest` (`from_time`, `to_time`, `from_write_time`, `to_write_time`, `max_count`)
+- Response: same as canonical `getLatest` but each report includes the 5 LOB fields (null if not populated)
+
+#### Graceful Degradation
+
+| Component | When capability IS available | When capability is NOT available |
+|-----------|------------------------------|--------------------------------|
+| **Emulator** | Submits via prototype `batchInsert` (includes LOB fields) | Submits via canonical `batchInsert` with LOB fields **stripped** from report dicts |
+| **Client UI** | Fetches via prototype `getLatest`; renders `LOBLayerManager` on map | Fetches via canonical `getLatest`; `LOBLayerManager` not rendered |
+| **Client UI** | Distance column available (opt-in, `default: false`) | Distance column available but always empty |
+
+#### Files
+
+| File | Type | Purpose |
+|------|------|---------|
+| `disco_surrogate_server/routes/prototype/entityReportLob.ts` | Route | Express router for 2 endpoints |
+| `disco_surrogate_server/db/EntityRepository.ts` | Modified | `addBatchExtended()` and `getLatestExtended()` methods |
+| `disco_live_world_client_ui/src/api/prototypeApi.ts` | API | `fetchEntityReportsLob()` function |
+| `disco_live_world_client_ui/src/hooks/useEntityReports.ts` | Hook | Checks `hasCapability('entity_report_lob')` to choose API |
+| `disco_live_world_client_ui/src/components/LOBLayerManager.tsx` | Component | LOB line visualization (capability-gated in `MapView.tsx`) |
+| `disco_data_emulator/endpoint_emulator/simulation/simulation_engine.py` | Modified | `_submit_entity_reports_lob()` for prototype; LOB field stripping for canonical fallback |
+
+#### Proposed Upstream Change
+
+Add `sensor_latitude`, `sensor_longitude`, `sensor_altitude_m` fields to the canonical `EntityReport` schema. This would allow sensor position to be transmitted alongside entity observations, enabling LOB visualization and client-side geolocation without a separate prototype endpoint.
+
+### 11.7 `live_world_batch_upsert` — Detailed Specification
+
+> **PROTOTYPE — NOT PART OF CANONICAL DiSCO API**
+> Capability key: `live_world_batch_upsert`
+
+#### Overview
+
+Provides a batch upsert endpoint for the live world model — INSERT new entities or UPDATE existing ones in a single transactional POST request. This replaces the canonical pattern of individual `POST /liveWorldModel` (create) and `PUT /liveWorldModel` (update) calls, reducing HTTP overhead in high-throughput simulation scenarios.
+
+#### Canonical Impact: NONE
+
+No canonical tables, endpoints, or schemas are modified. The prototype endpoint writes to the same `live_world_entities` table using the same repository methods (`add()` and `update()`).
+
+#### API Endpoint
+
+**`POST /api/v1/prototype/liveWorldModel/batchUpsert`** — Batch create/update live world entities
+
+Request body:
+```json
+{
+  "entities": [
+    {
+      "liveworldmodel_uuid": "existing-uuid-or-omit-for-new",
+      "source_payload_uuid": "...",
+      "origin": "position_report",
+      "origin_uuid": "...",
+      "position": { "latitude": 0, "longitude": 0, "altitude": 0 },
+      "latest_timestamp": 1708900000000
+    }
+  ]
+}
+```
+
+Upsert semantics:
+- If `liveworldmodel_uuid` is present and matches an existing row: **UPDATE** (equivalent to `PUT /liveWorldModel`)
+- If `liveworldmodel_uuid` is absent or doesn't match: **INSERT** (equivalent to `POST /liveWorldModel`, server assigns UUID)
+- All operations are wrapped in a single SQLite transaction
+
+Response:
+```json
+{
+  "inserted": 5,
+  "updated": 12,
+  "uuids": ["uuid-1", "uuid-2", "..."]
+}
+```
+
+#### Graceful Degradation
+
+| Component | When capability IS available | When capability is NOT available |
+|-----------|------------------------------|--------------------------------|
+| **Emulator** | Single `POST .../batchUpsert` per tick with all entities | Per-entity `POST` (new) / `PUT` (update) loop |
+
+The client UI does not write to live world, so this capability only affects the emulator.
+
+#### Files
+
+| File | Type | Purpose |
+|------|------|---------|
+| `disco_surrogate_server/routes/prototype/liveWorldBatchUpsert.ts` | Route | Express router for batch upsert endpoint |
+| `disco_data_emulator/endpoint_emulator/simulation/simulation_engine.py` | Modified | `_submit_live_world_batch()` for prototype; per-entity loop for canonical fallback |
+
+#### Proposed Upstream Change
+
+Add a batch upsert endpoint to the canonical LiveWorldModel API (e.g., `POST /api/v1/liveWorldModel/batchUpsert`) to support high-throughput data submission without individual POST/PUT per entity. This is particularly valuable when many endpoint positions update simultaneously.
 
 ---
 
