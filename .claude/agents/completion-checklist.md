@@ -38,12 +38,15 @@ Follow the complete verification workflow:
    - `./start.sh` launches the orchestration dashboard (port 8880) which starts all other services
    - ALL FOUR services must be healthy before proceeding: dashboard (8880), surrogate server (8765), emulator (8766), client UI (3000)
    - If any health check fails, do NOT proceed to screenshots — fix the issue first
-2. Ensure Chrome has tabs open for ALL THREE UIs:
+2. Take screenshots of ALL FOUR UIs (see Screenshot Method below):
    - Orchestration Dashboard: http://localhost:8880
    - Client UI: http://localhost:3000
    - Surrogate Server Dashboard: http://localhost:8765/dashboard
-3. Take screenshots of each UI using **non-interactive window-ID capture** (see below)
-4. **Read and VALIDATE every screenshot** using the Read tool (see Screenshot Validation below)
+   - Emulator Dashboard: http://localhost:8766/dashboard
+3. **Read and VALIDATE every screenshot** using the Read tool (see Screenshot Validation below)
+4. For Client UI, also verify via `page_exec` bridge (see below):
+   - `page_exec "return __testAPI__.getEntityCount();"` — confirm data loaded
+   - `page_exec "return __testAPI__.getMapBounds();"` — confirm map rendered
 5. Verify the specific feature works
 
 **TypeScript compilation is NOT sufficient. Visual verification is MANDATORY.**
@@ -69,16 +72,21 @@ After capturing each screenshot, you MUST use the Read tool to view it, then val
 - What you see in the screenshot (specific UI elements, text, indicators)
 - PASS or FAIL with reason
 
-#### Screenshot Method (MUST use this — no interactive screenshots)
+#### Screenshot Method
 
-Use this function to switch to a Chrome tab and capture it without any user interaction:
+Clean old screenshots BEFORE capturing, NEVER clean after:
+```bash
+rm -rf ./screenshots/*.png 2>/dev/null
+mkdir -p ./screenshots
+```
+
+Use `capture_chrome_tab` to switch to each tab and capture via window-ID:
 
 ```bash
 capture_chrome_tab() {
     local url_pattern="$1"
     local output_file="$2"
 
-    # Switch to tab matching URL pattern (or open if not found)
     local found
     found=$(osascript -e "
 tell application \"Google Chrome\"
@@ -107,7 +115,6 @@ end tell")
         sleep 0.5
     fi
 
-    # Get frontmost Chrome window ID via Swift (CGWindowID)
     local wid
     wid=$(swift -e '
 import CoreGraphics
@@ -131,17 +138,51 @@ if let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindo
     fi
 }
 
-# Usage — clean old screenshots BEFORE capturing, NEVER clean after
-rm -rf ./screenshots/*.png 2>/dev/null
-mkdir -p ./screenshots
+# Resize Chrome, then capture all four UIs
+osascript -e 'tell application "Google Chrome" to set bounds of front window to {100, 100, 1000, 700}'
 capture_chrome_tab "localhost:8880" ./screenshots/dashboard.png
 capture_chrome_tab "localhost:3000" ./screenshots/client_ui.png
 capture_chrome_tab "localhost:8765/dashboard" ./screenshots/server_dashboard.png
+capture_chrome_tab "localhost:8766/dashboard" ./screenshots/emulator_dashboard.png
 ```
 
-**IMPORTANT**: Never use bare `screencapture -x` or `screencapture -w` — these can trigger the macOS interactive screenshot tool and require user clicks. Always use the window-ID method above.
+**IMPORTANT**: Never use bare `screencapture -x` or `screencapture -w` — these trigger the macOS interactive screenshot tool. Always use window-ID capture.
 
-**IMPORTANT**: Clean screenshots BEFORE capturing (not after). Leave screenshots in `./screenshots/` when done so the user can review them later.
+**IMPORTANT**: Leave screenshots in `./screenshots/` when done so the user can review them later.
+
+#### Page Context Bridge for testAPI (CRITICAL)
+
+AppleScript's `execute javascript` runs in Chrome's **isolated world** and CANNOT access `window.__testAPI__`. To call testAPI methods, inject a `<script>` element that runs in the page context:
+
+```bash
+page_exec() {
+    local js_code="$1"
+    osascript << EOF
+tell application "Google Chrome"
+    set theTab to active tab of front window
+    execute theTab javascript "
+        var __s = document.createElement('script');
+        __s.textContent = \\\`
+            try {
+                var __result = (function() { ${js_code} })();
+                document.body.setAttribute('data-page-result', JSON.stringify(__result != null ? __result : 'void'));
+            } catch(e) {
+                document.body.setAttribute('data-page-result', JSON.stringify({error: e.message}));
+            }
+        \\\`;
+        document.head.appendChild(__s);
+        document.head.removeChild(__s);
+        document.body.getAttribute('data-page-result');
+    "
+end tell
+EOF
+}
+
+# Usage — must be on Client UI tab first:
+page_exec "return __testAPI__.getEntityCount();"
+page_exec "return __testAPI__.getMapBounds();"
+page_exec "return __testAPI__.getActiveTab();"
+```
 
 Reference: `/Users/ericpauls/Documents/disco_workspace/.claude/archive/claude_code_web_dev_workflow.md`
 
@@ -188,6 +229,7 @@ Provide a clear report with two sections:
 | Orchestration Dashboard | `./screenshots/dashboard.png` | [Describe specific UI elements visible] | PASS/FAIL |
 | Client UI | `./screenshots/client_ui.png` | [Describe specific UI elements visible] | PASS/FAIL |
 | Server Dashboard | `./screenshots/server_dashboard.png` | [Describe specific UI elements visible] | PASS/FAIL |
+| Emulator Dashboard | `./screenshots/emulator_dashboard.png` | [Describe specific UI elements visible] | PASS/FAIL |
 
 **Features verified**: [specific checks performed]
 **Overall Status**: PASS / FAIL (FAIL if ANY screenshot failed)
