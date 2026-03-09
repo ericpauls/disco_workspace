@@ -221,7 +221,7 @@ async function startSimulationWithScenario(configPath) {
     const response = await fetch('http://localhost:8766/api/simulation/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ configFile: configPath })
+      body: JSON.stringify({ config_file: configPath })
     });
     return await response.json();
   } catch (error) {
@@ -319,7 +319,7 @@ async function setEmulatorTargetServer(targetServerUrl) {
     const response = await fetch('http://localhost:8766/api/config/targetServer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetServerUrl })
+      body: JSON.stringify({ target_server_url: targetServerUrl })
     });
     return await response.json();
   } catch (error) {
@@ -343,7 +343,7 @@ async function setEmulatorAuthToken(authToken) {
     const response = await fetch('http://localhost:8766/api/config/authToken', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authToken })
+      body: JSON.stringify({ auth_token: authToken })
     });
     return await response.json();
   } catch (error) {
@@ -486,7 +486,7 @@ async function updateScenarioPanel(emulatorStatus) {
       for (const s of data.configs) {
         const opt = document.createElement('option');
         opt.value = s.path;
-        opt.textContent = `${s.name} (${s.totalEntities} entities, ${s.totalEndpoints} endpoints)`;
+        opt.textContent = `${s.name} (${s.total_entities} entities, ${s.total_endpoints} endpoints)`;
         elements.scenarioSelect.appendChild(opt);
       }
       // Default to density-gradient if available
@@ -508,13 +508,13 @@ async function updateScenarioPanel(emulatorStatus) {
     elements.scenarioSelect.disabled = true;
     elements.btnStartSim.disabled = true;
     elements.btnStopSim.disabled = false;
-    const configLabel = statusData.configFile || 'unknown';
+    const configLabel = statusData.config_file || 'unknown';
     setText(elements.scenarioStatusText, `Running: ${configLabel}`);
     setClass(elements.scenarioStatusText, 'scenario-status running');
     // Sync dropdown to current config
-    const match = scenariosList.find(s => s.path === statusData.configFile);
+    const match = scenariosList.find(s => s.path === statusData.config_file);
     if (match) elements.scenarioSelect.value = match.path;
-  } else if (!statusData.configFile) {
+  } else if (!statusData.config_file) {
     // Idle - no simulation loaded
     currentSimState = 'idle';
     elements.scenarioSelect.disabled = false;
@@ -528,7 +528,7 @@ async function updateScenarioPanel(emulatorStatus) {
     elements.scenarioSelect.disabled = true;
     elements.btnStartSim.disabled = true;
     elements.btnStopSim.disabled = false;
-    const configLabel = statusData.configFile || 'unknown';
+    const configLabel = statusData.config_file || 'unknown';
     setText(elements.scenarioStatusText, `Paused: ${configLabel}`);
     setClass(elements.scenarioStatusText, 'scenario-status');
   }
@@ -578,9 +578,9 @@ async function refreshLogs() {
 function updateEmulatorStats(statusData) {
   if (!statusData) return;
   setText(elements.emulatorScenario, statusData.scenario || '-');
-  setText(elements.emulatorEntityCount, formatNumber(statusData.totalEntities));
-  setText(elements.emulatorEndpointCount, formatNumber(statusData.endpointCount));
-  setText(elements.emulatorTick, formatNumber(statusData.tickCount));
+  setText(elements.emulatorEntityCount, formatNumber(statusData.total_entities));
+  setText(elements.emulatorEndpointCount, formatNumber(statusData.endpoint_count));
+  setText(elements.emulatorTick, formatNumber(statusData.tick_count));
 }
 
 // ============================================================
@@ -636,16 +636,16 @@ async function refreshAll() {
     }
     // Sync emulator target URL input (skip if user is editing)
     const emConfig = await fetchEmulatorConfig();
-    if (emConfig && emConfig.targetServerUrl) {
+    if (emConfig && emConfig.target_server_url) {
       if (document.activeElement !== elements.emulatorTargetUrl) {
-        elements.emulatorTargetUrl.value = emConfig.targetServerUrl;
+        elements.emulatorTargetUrl.value = emConfig.target_server_url;
       }
     }
     // Sync auth token input (skip if user is editing)
     const tokenData = await fetchEmulatorAuthToken();
-    if (tokenData && tokenData.authToken) {
+    if (tokenData && tokenData.auth_token) {
       if (document.activeElement !== elements.emulatorAuthToken) {
-        elements.emulatorAuthToken.value = tokenData.authToken;
+        elements.emulatorAuthToken.value = tokenData.auth_token;
       }
     }
   } else {
