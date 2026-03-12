@@ -88,8 +88,8 @@ A contested maritime/littoral environment with:
 - [ ] Filter by domain (air/maritime/land)
 - [ ] Filter by entity type / platform type
 - [ ] Text search by entity name/designation
-- [ ] Spatial filtering (draw region on map to filter)
-- [ ] Temporal filtering (show entities updated within last N minutes)
+- [x] Spatial filtering (draw region on map to filter) — **IMPLEMENTED** via FILTERS panel shift+drag selection + `getByParams` endpoints
+- [x] Temporal filtering (show entities updated within last N minutes) — **IMPLEMENTED** via tiered D3 timeline histograms with snap-to-live
 
 ### Entity Inspection
 - [x] Click-to-select entity on map or table (synchronized selection)

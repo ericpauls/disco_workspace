@@ -191,6 +191,8 @@ flowchart LR
             table["Data Table"]
             details["Details Panel"]
             lob_layer["LOB Layer"]
+            filters_panel["Filters Panel"]
+            heatmap_overlay["Heatmap Overlay"]
         end
 
         subgraph data["Data Layer"]
@@ -199,6 +201,7 @@ flowchart LR
             mem_stats["Memory Stats"]
             proto_hook["Prototype Hook"]
             proto_api["Prototype API"]
+            query_filter_ctx["QueryFilterContext"]
         end
 
         subgraph vite_plugin["Vite Dev Server Plugin"]
@@ -209,6 +212,9 @@ flowchart LR
 
         shell --> tabs
         tabs --> views
+        filters_panel --> query_filter_ctx
+        query_filter_ctx -->|useByParams flag| polling
+        heatmap_overlay --> proto_hook
         polling --> api_svc
         proto_hook --> proto_api
         mem_stats -->|POST| stats_api
@@ -231,7 +237,7 @@ flowchart LR
     classDef inner fill:#fff,stroke:#85BBF0,stroke-width:1px
 
     class shell,lw_tab,ent_tab,pos_tab,map,table,details,polling,api_svc,mem_stats comp
-    class lob_layer,proto_hook,proto_api comp
+    class lob_layer,proto_hook,proto_api,filters_panel,heatmap_overlay,query_filter_ctx comp
     class stats_api,config_api,polling_api comp
     class client cbox
     class js_client,server,dashboard ext

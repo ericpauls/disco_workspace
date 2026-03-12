@@ -697,6 +697,14 @@ GET    /api/v1/entities/getLatest                        - Get latest Entity Rep
          ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
 GET    /api/v1/entities/getByParams                      - Query by parameters
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by write_timestamp range
+         ?max_count=                                       - Limit results (default 1000)
+         ?pagetoken=                                       - Cursor pagination (base64 write_timestamp:id)
+         ?latitude_min=&latitude_max=                      - Spatial bounds (R-tree indexed)
+         ?longitude_min=&longitude_max=                    - Spatial bounds (R-tree indexed)
+         ?source_payload_uuid=                             - Filter by endpoint
+         ?emitter_type=                                    - Filter by emitter type
 GET    /api/v1/entities/getUuids                         - List UUIDs
 GET    /api/v1/entities/{entity_msg_uuid}                - Get by UUID
 DELETE /api/v1/entities/{entity_msg_uuid}                - Delete by UUID
@@ -720,6 +728,13 @@ GET    /api/v1/positionReports/getLatest                 - Get latest
          ?from_write_time=&to_write_time=                  - Filter by write_timestamp range (cursor-based polling)
          ?max_count=                                       - Limit results (default 1000)
 GET    /api/v1/positionReports/getByParams               - Query by parameters
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by write_timestamp range
+         ?max_count=                                       - Limit results (default 1000)
+         ?pagetoken=                                       - Cursor pagination (base64 write_timestamp:id)
+         ?latitude_min=&latitude_max=                      - Spatial bounds (R-tree indexed)
+         ?longitude_min=&longitude_max=                    - Spatial bounds (R-tree indexed)
+         ?source_payload_uuid=                             - Filter by endpoint
 GET    /api/v1/positionReports/getUuids                  - List UUIDs
 GET    /api/v1/positionReports/{uuid}                    - Get by UUID
 DELETE /api/v1/positionReports/{uuid}                    - Delete by UUID
@@ -766,6 +781,13 @@ DELETE /api/v1/fusedEntitySummary/{uuid}                 - Delete by UUID
 POST   /api/v1/liveWorldModel                            - Add new record
 PUT    /api/v1/liveWorldModel                            - Update record
 GET    /api/v1/liveWorldModel/getByParams                - Query by parameters
+         ?from_time=&to_time=                              - Filter by latest_timestamp range
+         ?from_write_time=&to_write_time=                  - Filter by write_timestamp range
+         ?max_count=                                       - Limit results (default 1000)
+         ?pagetoken=                                       - Cursor pagination (base64 write_timestamp)
+         ?latitude_min=&latitude_max=                      - Spatial bounds
+         ?longitude_min=&longitude_max=                    - Spatial bounds
+         ?emitter_type=&origin_uuid=&liveworldmodel_uuid=  - Field filters
 GET    /api/v1/liveWorldModel/getLatest                  - Get latest (current impl)
 GET    /api/v1/liveWorldModel/getUuids                   - List UUIDs by origin
 GET    /api/v1/liveWorldModel/{uuid}                     - Get by origin UUID

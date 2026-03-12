@@ -141,6 +141,14 @@ sequenceDiagram
         end
     end
 
+    loop Every 2s (Filtered — spatial/temporal bounds active)
+        Note over C,S: Client dynamically selects getLatest (unfiltered/live)<br/>vs getByParams (spatial/temporal filters)<br/>based on FILTERS panel state
+        C->>S: GET /api/v1/entities/getByParams?lat_min=...&from_write_time=...
+        S-->>C: Filtered entity results (R-tree spatial index)
+        C->>S: GET /api/v1/positionReports/getByParams?lat_min=...&from_write_time=...
+        S-->>C: Filtered position results (R-tree spatial index)
+    end
+
     loop Every 3s (Dashboard UI Polling)
         Note over S: Dashboard UI is served from surrogate server
         S->>S: GET /api/v1/prototype/dataStatistics/overview

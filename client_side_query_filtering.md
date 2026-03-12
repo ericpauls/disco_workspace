@@ -1,6 +1,119 @@
-# Client-Side Query Filtering — Questions & Concerns
+# Client-Side Query Filtering
 
-## Context
+## Implementation Status: COMPLETE (2026-03-11)
+
+### Architecture Overview
+
+The filtering system has three layers:
+1. **FILTERS Panel UI** — tiered timeline histograms, spatial selection, apply/reset controls
+2. **Smart Endpoint Selection** — hooks dynamically choose `getLatest` vs `getByParams` based on active filters
+3. **Server-Side Query Support** — `getByParams` endpoints with R-tree spatial indexing and cursor pagination
+
+### Provider Hierarchy (`main.tsx`)
+
+```
+ServerConfigProvider → ServerCapabilitiesProvider → PollingModeProvider → QueryFilterProvider → App
+```
+
+### State Flow
+
+1. User manipulates timeline tiers and/or shift+drags spatial area on map
+2. FiltersPanel syncs selections → `pendingFilters` in QueryFilterContext
+3. User clicks "Set & Clear" or "Set Without Clear"
+4. `applyFilters()` copies pending → active filters, optionally bumps `clearGeneration`
+5. Polling hooks (`useEntityReports`, `usePositionReports`, `useLiveWorldData`) react to filter changes
+6. If spatial bounds or historical time window active → switch to `getByParams` endpoint
+7. If live-tail with no spatial bounds → stay on `getLatest` endpoint
+
+### Key Files — Contexts
+
+| File | Purpose |
+|------|---------|
+| `src/contexts/QueryFilterContext.tsx` | Active/pending filter state, apply/reset, clearGeneration counter |
+| `src/contexts/ServerCapabilitiesContext.tsx` | Probes `/health` for `prototype_capabilities`, gates features |
+| `src/contexts/PollingModeContext.tsx` | `from-beginning` vs `always-latest` mode (localStorage) |
+| `src/contexts/ServerConfigContext.tsx` | Server IP/port, derives `apiBaseUrl` |
+
+### Key Files — Hooks
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useEntityReports.ts` | Dual-mode polling with smart endpoint selection (`getLatest` vs `getByParams`) |
+| `src/hooks/usePositionReports.ts` | Same pattern as entity reports |
+| `src/hooks/useFilterStatisticsOverview.ts` | Polls prototype `dataStatistics/overview` (capability-gated) |
+| `src/hooks/useFilterTimelineData.ts` | Fetches timeline histogram bins from `dataStatistics/timeline` |
+| `src/hooks/useFilterHeatmapData.ts` | Fetches H3 heatmap cells from `dataStatistics/heatmap` |
+| `src/hooks/useDataTypeSelection.ts` | Manages `DataType[]` selection for timeline/heatmap filtering |
+
+### Key Files — Components
+
+| File | Purpose |
+|------|---------|
+| `src/components/FiltersPanel.tsx` | Main FILTERS panel: tiered timelines, spatial display, apply/reset buttons |
+| `src/components/filters/TimelineHistogram.tsx` | D3-based interactive timeline with draggable selection window |
+| `src/components/filters/DataTypeSelector.tsx` | Data type checkboxes grouped by category |
+| `src/components/filters/HeatmapOverlay.tsx` | H3 hexagon rendering on Leaflet map + shift+drag spatial selection |
+
+### Key Files — Types & Constants
+
+| File | Purpose |
+|------|---------|
+| `src/types/queryFilters.ts` | `SpatialBounds`, `TimeWindow`, `QueryFilters` interfaces |
+| `src/constants/dataTypes.ts` | `DataType` union, `DataTypeInfo` with colors/categories |
+
+### Key Files — API
+
+| File | Purpose |
+|------|---------|
+| `src/api/discoApi.ts` | `buildByParamsQuery()`, `getEntityReportsByParams()`, `getPositionReportsByParams()`, `getLiveWorldByParamsTyped()` |
+| `src/api/prototypeApi.ts` | `getEntityReportsLob()` (prototype, capability-gated) |
+
+### Smart Endpoint Selection Logic
+
+The `useByParams` flag in each polling hook: `!!(queryFilters?.spatial || queryFilters?.time.toWriteTime !== undefined)`
+
+| Scenario | Endpoint | Behavior |
+|----------|----------|----------|
+| No filters (default) | `getLatest` | Continuous cursor polling |
+| Live tail + spatial bounds | `getByParams` | Continuous cursor polling with lat/lon bounds |
+| Historical time window (no spatial) | `getByParams` | One-time paginated drain, then stop |
+| Historical + spatial | `getByParams` | One-time paginated drain with bounds, then stop |
+
+### Timeline Tier System
+
+- Tiers are stacked zoom levels: tier 0 is the broadest, each child tier's range = parent's selection
+- Each tier has `snapLeft` and `snapRight` toggles that lock edges to data bounds or "now"
+- `isLiveTailChain = tiers.every(t => t.snapRight)` → when true, `toWriteTime` is undefined (live polling)
+- Tier state is lifted to `App.tsx` to persist across FILTERS panel open/close cycles
+- Default: tier 0 = Jan 2026 to now (snapRight), tier 1 = full range (snapLeft + snapRight)
+
+### Heatmap Overlay
+
+- Renders H3 hexagons from `dataStatistics/heatmap` prototype endpoint (capability-gated)
+- Shift+drag on map creates spatial selection rectangle
+- Selection synced to `pendingFilters.spatial` via `onHeatmapStateChange` callback
+- Purple-to-pink color scale with log normalization
+- Silently hidden when `data_statistics` capability absent (real DiSCO server)
+
+### Apply/Reset Buttons
+
+- **Set & Clear**: `applyFilters(true)` — copies pending → active, bumps `clearGeneration` (clears all buffered data)
+- **Set Without Clear**: `applyFilters(false)` — copies pending → active, keeps existing data
+- **Reset to Default**: Resets filters, resets tiers to defaults, clears heatmap selection
+- **Clear Spatial**: Clears spatial bounds from pending filters and map selection
+
+### Server-Side Support
+
+- **R-tree spatial indexing**: `entity_reports_rtree` and `position_reports_rtree` tables for fast bounding-box queries
+- **Cursor pagination**: `pagetoken` parameter (base64-encoded `write_timestamp:id`) for multi-page results
+- **Statistics Engine** (prototype): In-memory temporal/spatial aggregation with H3 binning, periodic 30s rebuilds
+- **getByParams endpoints**: Accept `from_time`, `to_time`, `from_write_time`, `to_write_time`, `max_count`, `pagetoken`, `latitude_min/max`, `longitude_min/max`, `source_payload_uuid`, `emitter_type`
+
+---
+
+## Original Design Questions & Answers
+
+### Context
 
 Adding query filtering to the client UI so users can constrain what data is fetched from the server (time window, spatial bounds). Two entry points: (1) a "send to UI" button on the surrogate server dashboard that opens the client with a pre-configured query, and (2) a new FILTERS tab on the client UI's expandable panel with controls ported from the server dashboard's statistics views.
 

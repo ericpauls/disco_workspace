@@ -310,46 +310,30 @@ Hovering over a row in the entity data table should highlight/select that entity
 ---
 
 ### Entity Filtering Not Implemented
-**Status**: Needs Implementation
+**Status**: COMPLETED (2026-03-11)
 **Priority**: Medium
 **Created**: 2026-01-08
+**Completed**: 2026-03-11
 
 **Description**:
-Add new filtering features to allow users to view only specific types of entities or dispositions. Currently, only text search filtering exists. Need UI for filtering by:
-- Entity type (RADAR, COMMUNICATIONS, JAMMER, MISSILE)
-- Disposition (HOSTILE, FRIENDLY, NEUTRAL, UNKNOWN)
-- Other metadata (frequency range, signal strength, etc.)
+Server-side query filtering via FILTERS panel with spatial bounds selection (shift+drag on map), tiered D3 timeline histograms with snap-to-live, and smart endpoint selection (`getLatest` vs `getByParams`). Three-button approach: Reset to Default, Set & Clear, Set Without Clear.
 
-**Current Implementation**:
-- Text search filtering on entity name and type
-- No UI for categorical filtering
-- All entities shown on map by default
+**What was built**:
+- `QueryFilterContext` manages active/pending filter state with `clearGeneration` counter
+- FILTERS panel with tiered timeline histograms (D3), spatial bounds display, apply/reset buttons
+- H3 heatmap overlay on Leaflet map (prototype capability-gated via `data_statistics`)
+- Smart endpoint selection: hooks use `getByParams` when spatial/historical filters active, `getLatest` otherwise
+- SQL parameter ordering fix in surrogate server `getByParams` for spatial+time queries (R-tree join)
 
-**Requirements**:
-- Filter controls in data panel
-- Multiple filter types can be combined (AND logic)
-- Filter affects both table and map display
-- Quick toggle buttons for common filters
-- Persist filter state during session
-
-**Proposed Approach**:
-1. Add filter state to App.jsx
-2. Create FilterPanel component with checkboxes/toggles
-3. Implement filter logic for entities
-4. Apply filters to both table and map rendering
-5. Show count of filtered vs total entities
-
-**Next Steps**:
-1. Design filter UI layout
-2. Implement filter state management
-3. Create filter UI controls
-4. Apply filters to entity display
-5. Test with large entity sets
+**Full documentation**: See `client_side_query_filtering.md` in workspace root.
 
 **Related Files**:
-- `client/src/App.jsx` (state and filtering logic)
-- `client/src/components/MapView.jsx` (map rendering)
-- `client/src/index.css` (filter UI styling)
+- `disco_live_world_client_ui/src/contexts/QueryFilterContext.tsx`
+- `disco_live_world_client_ui/src/components/FiltersPanel.tsx`
+- `disco_live_world_client_ui/src/hooks/useEntityReports.ts`
+- `disco_live_world_client_ui/src/hooks/usePositionReports.ts`
+- `disco_surrogate_server/db/EntityRepository.ts`
+- `disco_surrogate_server/db/PositionRepository.ts`
 
 ---
 
